@@ -619,6 +619,414 @@ h1 {
   .tab-btn { padding: 6px 10px; font-size:11px; }
   .task-input { font-size:13px; }
 }
+
+/* ══════════════════════════════════════════════
+   FULLSCREEN FOCUS MODE — SELF-CONTAINED FEATURE
+   ══════════════════════════════════════════════ */
+
+/* Expand button on card header */
+.fs-expand-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.2s;
+  z-index: 2;
+  line-height: 1;
+  padding: 0;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+.fs-expand-btn:hover {
+  color: var(--text-1);
+  border-color: var(--border-h);
+  background: var(--surface3);
+  transform: scale(1.08);
+}
+.blue-card .fs-expand-btn:hover { border-color: rgba(91,156,246,0.4); color: var(--blue); box-shadow: 0 0 12px rgba(91,156,246,0.2); }
+.pink-card .fs-expand-btn:hover { border-color: rgba(244,114,182,0.4); color: var(--pink); box-shadow: 0 0 12px rgba(244,114,182,0.2); }
+
+/* Full overlay container */
+#fsOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s cubic-bezier(0.4,0,0.2,1);
+  overflow: hidden;
+  font-family: var(--font);
+}
+#fsOverlay.fs-active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Deep background layer */
+#fsBg {
+  position: absolute;
+  inset: 0;
+  background: #04040c;
+  z-index: 0;
+}
+
+/* Radial glow blobs */
+#fsGlow1, #fsGlow2 {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: 1;
+  transition: background 0.6s;
+  pointer-events: none;
+}
+#fsGlow1 {
+  width: 60vw; height: 60vw;
+  top: -20vw; left: -15vw;
+  opacity: 0.55;
+}
+#fsGlow2 {
+  width: 50vw; height: 50vw;
+  bottom: -15vw; right: -10vw;
+  opacity: 0.4;
+}
+
+/* Particle canvas */
+#fsCanvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Grid overlay */
+#fsGrid {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* Vignette */
+#fsVignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+  pointer-events: none;
+}
+
+/* Top HUD */
+#fsHud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  z-index: 10;
+  animation: fsFadeDown 0.6s 0.2s both;
+}
+@keyframes fsFadeDown { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fsFadeUp   { from{opacity:0;transform:translateY(14px)}  to{opacity:1;transform:translateY(0)} }
+@keyframes fsScaleIn  { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
+@keyframes fsBreathePulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+.fs-hud-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fs-hud-name {
+  font-size: clamp(13px, 2vw, 16px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #fff;
+  opacity: 0.9;
+  font-family: var(--mono);
+}
+.fs-hud-date {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.38);
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.fs-hud-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.fs-hud-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.fs-hud-stat-val {
+  font-family: var(--mono);
+  font-size: clamp(11px, 1.5vw, 14px);
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+}
+.fs-hud-stat-key {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  font-weight: 600;
+}
+.fs-hud-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,0.1);
+}
+
+/* Close button */
+#fsCloseBtn {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#fsCloseBtn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border-color: rgba(255,255,255,0.25);
+  transform: scale(1.08);
+}
+
+/* Center content */
+#fsCenter {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  animation: fsScaleIn 0.55s 0.1s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+/* Status badge */
+#fsStatusBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 100px;
+  padding: 6px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.5s;
+  animation: fsBreathePulse 3s ease-in-out infinite;
+}
+#fsStatusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: all 0.4s;
+}
+#fsStatusDot.fs-dot-active {
+  animation: blink 1.5s ease-in-out infinite;
+}
+#fsStatusText {
+  color: rgba(255,255,255,0.7);
+  font-family: var(--mono);
+}
+
+/* Neon ring around timer */
+#fsRing {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+#fsRingGlow {
+  position: absolute;
+  inset: -24px;
+  border-radius: 50%;
+  filter: blur(28px);
+  opacity: 0.35;
+  transition: background 0.5s, opacity 0.5s;
+  animation: fsRingPulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes fsRingPulse {
+  0%,100% { opacity: 0.3; transform: scale(0.96); }
+  50%      { opacity: 0.55; transform: scale(1.04); }
+}
+#fsRingBorder {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.07);
+  pointer-events: none;
+  transition: border-color 0.5s;
+}
+
+/* The big timer */
+#fsTimerDisplay {
+  font-family: var(--mono);
+  font-size: clamp(52px, 12vw, 120px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #fff;
+  transition: text-shadow 0.5s, color 0.5s;
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+}
+#fsTimerDisplay.fs-timer-blue {
+  color: #7fb8ff;
+  text-shadow:
+    0 0 30px rgba(91,156,246,0.8),
+    0 0 70px rgba(91,156,246,0.5),
+    0 0 140px rgba(91,156,246,0.25);
+  animation: fsGlowBlue 2.5s ease-in-out infinite;
+}
+#fsTimerDisplay.fs-timer-pink {
+  color: #fba3d0;
+  text-shadow:
+    0 0 30px rgba(244,114,182,0.8),
+    0 0 70px rgba(244,114,182,0.5),
+    0 0 140px rgba(244,114,182,0.25);
+  animation: fsGlowPink 2.5s ease-in-out infinite;
+}
+#fsTimerDisplay.fs-timer-paused {
+  opacity: 0.55;
+  animation: fsGlowPaused 2s ease-in-out infinite;
+}
+@keyframes fsGlowBlue {
+  0%,100% { text-shadow: 0 0 30px rgba(91,156,246,0.8),  0 0 70px rgba(91,156,246,0.5),  0 0 140px rgba(91,156,246,0.25); }
+  50%      { text-shadow: 0 0 50px rgba(91,156,246,1.0),  0 0 100px rgba(91,156,246,0.7), 0 0 200px rgba(91,156,246,0.35); }
+}
+@keyframes fsGlowPink {
+  0%,100% { text-shadow: 0 0 30px rgba(244,114,182,0.8),  0 0 70px rgba(244,114,182,0.5),  0 0 140px rgba(244,114,182,0.25); }
+  50%      { text-shadow: 0 0 50px rgba(244,114,182,1.0),  0 0 100px rgba(244,114,182,0.7), 0 0 200px rgba(244,114,182,0.35); }
+}
+@keyframes fsGlowPaused {
+  0%,100% { opacity: 0.55; } 50% { opacity: 0.3; }
+}
+
+/* Sub-label under timer */
+#fsSessionLabel {
+  font-size: clamp(12px, 2vw, 15px);
+  font-weight: 500;
+  color: rgba(255,255,255,0.3);
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+/* Bottom HUD stats row */
+#fsBottomHud {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 22px 28px;
+  z-index: 10;
+  animation: fsFadeUp 0.6s 0.3s both;
+}
+
+.fs-bottom-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 28px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.fs-bottom-stat:last-child { border-right: none; }
+.fs-bottom-stat-val {
+  font-family: var(--mono);
+  font-size: clamp(14px, 2.2vw, 20px);
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+}
+.fs-bottom-stat-key {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  font-weight: 600;
+}
+
+/* Scanline effect */
+#fsScanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.04) 3px,
+    rgba(0,0,0,0.04) 4px
+  );
+  opacity: 0.5;
+}
+
+/* Exit animation */
+#fsOverlay.fs-exit {
+  animation: fsExitAnim 0.4s cubic-bezier(0.4,0,1,1) forwards;
+}
+@keyframes fsExitAnim {
+  from { opacity:1; transform:scale(1); }
+  to   { opacity:0; transform:scale(1.04); }
+}
+
+/* Mobile adjustments for fullscreen */
+@media (max-width: 600px) {
+  #fsHud { padding: 14px 16px; }
+  #fsCloseBtn { top: 12px; right: 12px; width: 32px; height: 32px; font-size: 14px; }
+  .fs-bottom-stat { padding: 0 14px; }
+  #fsStatusBadge { padding: 5px 14px; font-size: 10px; margin-bottom: 18px; }
+  #fsRingGlow { inset: -14px; }
+  #fsRingBorder { inset: -12px; }
+}
 </style>
 </head>
 <body>
@@ -681,12 +1089,15 @@ h1 {
         <div class="card-header">
           <div class="card-identity">
             <div class="avatar">D</div>
-            <div>
-              <div class="card-name">DEV</div>
-              <div class="card-sub"></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div>
+                <div class="card-name">DEV</div>
+                <div class="card-sub"></div>
+              </div>
+              <div class="status-dot" id="devDot"></div>
             </div>
           </div>
-          <div class="status-dot" id="devDot"></div>
+          <button class="fs-expand-btn" onclick="openFocusMode('dev')" title="Fullscreen Focus Mode (F)">⛶</button>
         </div>
         <div class="mascot-wrap" id="devMascotWrap">
           <span class="mascot idle" id="devMascot">🌠</span>
@@ -745,12 +1156,15 @@ h1 {
         <div class="card-header">
           <div class="card-identity">
             <div class="avatar">O</div>
-            <div>
-              <div class="card-name">OSHU</div>
-              <div class="card-sub"></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div>
+                <div class="card-name">OSHU</div>
+                <div class="card-sub"></div>
+              </div>
+              <div class="status-dot" id="oshuDot"></div>
             </div>
           </div>
-          <div class="status-dot" id="oshuDot"></div>
+          <button class="fs-expand-btn" onclick="openFocusMode('oshu')" title="Fullscreen Focus Mode (F)">⛶</button>
         </div>
         <div class="mascot-wrap" id="oshuMascotWrap">
           <span class="mascot idle" id="oshuMascot">🦦</span>
@@ -1961,5 +2375,375 @@ function switchTab(name, btn) {
 }
 </script>
 
+<!-- ═══════════════════════════════════
+     FULLSCREEN FOCUS MODE OVERLAY
+     ═══════════════════════════════════ -->
+<div id="fsOverlay" role="dialog" aria-modal="true" aria-label="Focus Mode">
+  <!-- Layers -->
+  <div id="fsBg"></div>
+  <div id="fsGlow1"></div>
+  <div id="fsGlow2"></div>
+  <canvas id="fsCanvas"></canvas>
+  <div id="fsGrid"></div>
+  <div id="fsScanlines"></div>
+  <div id="fsVignette"></div>
+
+  <!-- Close -->
+  <button id="fsCloseBtn" onclick="closeFocusMode()" title="Exit (ESC)">✕</button>
+
+  <!-- Top HUD -->
+  <div id="fsHud">
+    <div class="fs-hud-left">
+      <div class="fs-hud-name" id="fsHudName">— — —</div>
+      <div class="fs-hud-date" id="fsHudDate">—</div>
+    </div>
+    <div class="fs-hud-right">
+      <div class="fs-hud-stat">
+        <span class="fs-hud-stat-val" id="fsHudSessions">0</span>
+        <span class="fs-hud-stat-key">Sessions</span>
+      </div>
+      <div class="fs-hud-divider"></div>
+      <div class="fs-hud-stat">
+        <span class="fs-hud-stat-val" id="fsHudStreak">🔥 0</span>
+        <span class="fs-hud-stat-key">Streak</span>
+      </div>
+      <div class="fs-hud-divider"></div>
+      <div class="fs-hud-stat">
+        <span class="fs-hud-stat-val" id="fsHudGoal">0%</span>
+        <span class="fs-hud-stat-key">Goal</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center content -->
+  <div id="fsCenter">
+    <div id="fsStatusBadge">
+      <div id="fsStatusDot"></div>
+      <span id="fsStatusText">IDLE</span>
+    </div>
+
+    <div id="fsRing">
+      <div id="fsRingGlow"></div>
+      <div id="fsRingBorder"></div>
+      <div id="fsTimerDisplay">00:00:00</div>
+    </div>
+
+    <div id="fsSessionLabel">Current Session</div>
+  </div>
+
+  <!-- Bottom stats -->
+  <div id="fsBottomHud">
+    <div class="fs-bottom-stat">
+      <span class="fs-bottom-stat-val" id="fsStatTotal">00:00:00</span>
+      <span class="fs-bottom-stat-key">Today's Total</span>
+    </div>
+    <div class="fs-bottom-stat">
+      <span class="fs-bottom-stat-val" id="fsStatLongest">—</span>
+      <span class="fs-bottom-stat-key">Longest</span>
+    </div>
+    <div class="fs-bottom-stat">
+      <span class="fs-bottom-stat-val" id="fsStatBreak">—</span>
+      <span class="fs-bottom-stat-key">Break Time</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════
+     FULLSCREEN FOCUS MODE JS
+     ═══════════════════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  // ── State ────────────────────────────────────
+  let fsUser     = null;   // 'dev' | 'oshu'
+  let fsOpen     = false;
+  let fsTick     = null;   // rAF handle
+  let fsParticles = [];
+  let fsCtx      = null;
+  let fsAnimFrame = null;
+
+  // ── Color map ────────────────────────────────
+  const FS_COLORS = {
+    dev:  { primary: 'rgba(91,156,246,', hex: '#5b9cf6',  glow1: 'rgba(91,156,246,0.18)',  glow2: 'rgba(30,60,130,0.22)',  timerClass: 'fs-timer-blue', dotColor: '#5b9cf6' },
+    oshu: { primary: 'rgba(244,114,182,', hex: '#f472b6', glow1: 'rgba(244,114,182,0.16)', glow2: 'rgba(120,30,80,0.20)', timerClass: 'fs-timer-pink', dotColor: '#f472b6' },
+  };
+
+  // ── Element helpers ──────────────────────────
+  const $ = id => document.getElementById(id);
+
+  function getTimerText(user) {
+    return ($(`${user}Timer`) || {}).textContent || '00:00:00';
+  }
+  function getTotalText(user) {
+    return ($(`${user}Total`) || {}).textContent || '00:00:00';
+  }
+  function getSessionCount(user) {
+    return ($(`${user}Sessions`) || {}).textContent || '0';
+  }
+  function getLongest(user) {
+    return ($(`${user}Longest`) || {}).textContent || '—';
+  }
+  function getStreak(user) {
+    return ($(`${user}Streak`) || {}).textContent || '🔥 0';
+  }
+  function getGoalPct(user) {
+    return ($(`${user}Pct`) || {}).textContent || '0%';
+  }
+  function getStatusDotActive(user) {
+    return ($(`${user}Dot`) || {}).classList?.contains('active') || false;
+  }
+  function getBreakStrip(user) {
+    const strip = $(`${user}BreakStrip`);
+    return strip && (strip.classList.contains('show') || getComputedStyle(strip).display !== 'none');
+  }
+  function getBreakElapsed(user) {
+    return ($(`${user}BreakElapsed`) || {}).textContent || '00:00';
+  }
+  function getStatusLabel(user) {
+    const isActive = getStatusDotActive(user);
+    const isBreak  = getBreakStrip(user);
+    const timer    = getTimerText(user);
+    if (isBreak)   return { text: 'ON BREAK',  pulse: false };
+    if (isActive)  return { text: 'STUDYING',  pulse: true  };
+    if (timer !== '00:00:00') return { text: 'PAUSED', pulse: false };
+    return { text: 'IDLE', pulse: false };
+  }
+
+  // ── Particles ────────────────────────────────
+  function initParticles() {
+    const canvas = $('fsCanvas');
+    if (!canvas) return;
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    fsCtx = canvas.getContext('2d');
+    fsParticles = [];
+    const count = Math.min(60, Math.floor(window.innerWidth * window.innerHeight / 20000));
+    const c = FS_COLORS[fsUser] || FS_COLORS.dev;
+    for (let i = 0; i < count; i++) {
+      fsParticles.push({
+        x:    Math.random() * canvas.width,
+        y:    Math.random() * canvas.height,
+        r:    Math.random() * 1.8 + 0.3,
+        vx:   (Math.random() - 0.5) * 0.35,
+        vy:   (Math.random() - 0.5) * 0.35,
+        alpha: Math.random() * 0.5 + 0.1,
+        color: c.hex,
+      });
+    }
+  }
+
+  function animateParticles() {
+    if (!fsOpen || !fsCtx) return;
+    const canvas = $('fsCanvas');
+    fsCtx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of fsParticles) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      fsCtx.beginPath();
+      fsCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      fsCtx.fillStyle = p.color + Math.floor(p.alpha * 255).toString(16).padStart(2,'0');
+      fsCtx.fill();
+    }
+    // Draw thin connection lines between nearby particles
+    for (let i = 0; i < fsParticles.length; i++) {
+      for (let j = i + 1; j < fsParticles.length; j++) {
+        const dx = fsParticles[i].x - fsParticles[j].x;
+        const dy = fsParticles[i].y - fsParticles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 100) {
+          const c = FS_COLORS[fsUser] || FS_COLORS.dev;
+          fsCtx.beginPath();
+          fsCtx.moveTo(fsParticles[i].x, fsParticles[i].y);
+          fsCtx.lineTo(fsParticles[j].x, fsParticles[j].y);
+          const alpha = (1 - dist / 100) * 0.12;
+          fsCtx.strokeStyle = c.primary + alpha + ')';
+          fsCtx.lineWidth = 0.5;
+          fsCtx.stroke();
+        }
+      }
+    }
+    fsAnimFrame = requestAnimationFrame(animateParticles);
+  }
+
+  // ── Sync display ─────────────────────────────
+  function syncFsDisplay() {
+    if (!fsOpen || !fsUser) return;
+    const c = FS_COLORS[fsUser] || FS_COLORS.dev;
+
+    // Timer
+    const timerEl = $('fsTimerDisplay');
+    const timer   = getTimerText(fsUser);
+    timerEl.textContent = timer;
+
+    const status = getStatusLabel(fsUser);
+    timerEl.className = '';
+    if (status.text === 'STUDYING') {
+      timerEl.classList.add(c.timerClass);
+    } else if (status.text === 'PAUSED' || status.text === 'IDLE') {
+      timerEl.classList.add('fs-timer-paused');
+    } else if (status.text === 'ON BREAK') {
+      timerEl.classList.add('fs-timer-paused');
+    }
+
+    // Status badge
+    const dot = $('fsStatusDot');
+    $('fsStatusText').textContent = status.text;
+    dot.style.background = status.pulse ? c.dotColor : 'rgba(255,255,255,0.2)';
+    dot.className = status.pulse ? 'fs-dot-active' : '';
+
+    // Ring glow
+    const ringGlow  = $('fsRingGlow');
+    const ringBorder = $('fsRingBorder');
+    if (status.text === 'STUDYING') {
+      ringGlow.style.background = c.primary + '0.7)';
+      ringBorder.style.borderColor = c.primary + '0.25)';
+    } else {
+      ringGlow.style.background = 'rgba(255,255,255,0.08)';
+      ringBorder.style.borderColor = 'rgba(255,255,255,0.07)';
+    }
+
+    // Session label
+    if (status.text === 'ON BREAK') {
+      $('fsSessionLabel').textContent = 'Break · ' + getBreakElapsed(fsUser);
+    } else {
+      $('fsSessionLabel').textContent = 'Current Session';
+    }
+
+    // Bottom stats
+    $('fsStatTotal').textContent   = getTotalText(fsUser);
+    $('fsStatLongest').textContent = getLongest(fsUser);
+    $('fsStatBreak').textContent   = status.text === 'ON BREAK' ? getBreakElapsed(fsUser) : (getBreakStrip(fsUser) ? getBreakElapsed(fsUser) : '—');
+
+    // Top HUD
+    $('fsHudSessions').textContent = getSessionCount(fsUser);
+    $('fsHudStreak').textContent   = getStreak(fsUser);
+    $('fsHudGoal').textContent     = getGoalPct(fsUser);
+  }
+
+  function startFsTick() {
+    if (fsTick) clearInterval(fsTick);
+    fsTick = setInterval(syncFsDisplay, 500);
+  }
+  function stopFsTick() {
+    if (fsTick) { clearInterval(fsTick); fsTick = null; }
+  }
+
+  // ── Open focus mode ──────────────────────────
+  window.openFocusMode = function(user) {
+    fsUser = user;
+    fsOpen = true;
+
+    const c = FS_COLORS[user] || FS_COLORS.dev;
+    const name = user === 'dev' ? 'DEV' : 'OSHU';
+
+    // Apply colors
+    $('fsGlow1').style.background = c.glow1;
+    $('fsGlow2').style.background = c.glow2;
+
+    // HUD data
+    $('fsHudName').textContent = name;
+    $('fsHudDate').textContent = ($('dateDisplay') || {}).textContent || new Date().toLocaleDateString();
+
+    // Sync immediately
+    syncFsDisplay();
+
+    // Show overlay
+    const overlay = $('fsOverlay');
+    overlay.classList.remove('fs-exit');
+    overlay.classList.add('fs-active');
+
+    // Particles
+    initParticles();
+    if (fsAnimFrame) cancelAnimationFrame(fsAnimFrame);
+    animateParticles();
+
+    // Start sync tick
+    startFsTick();
+
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+
+    // Try native fullscreen (best effort)
+    try {
+      if (overlay.requestFullscreen) overlay.requestFullscreen().catch(()=>{});
+      else if (overlay.webkitRequestFullscreen) overlay.webkitRequestFullscreen();
+    } catch(e) {}
+  };
+
+  // ── Close focus mode ─────────────────────────
+  window.closeFocusMode = function() {
+    const overlay = $('fsOverlay');
+    overlay.classList.add('fs-exit');
+    stopFsTick();
+    if (fsAnimFrame) { cancelAnimationFrame(fsAnimFrame); fsAnimFrame = null; }
+    setTimeout(() => {
+      overlay.classList.remove('fs-active', 'fs-exit');
+      fsOpen = false;
+      fsUser = null;
+      document.body.style.overflow = '';
+    }, 420);
+
+    // Exit native fullscreen
+    try {
+      if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+      else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+    } catch(e) {}
+  };
+
+  // ── Keyboard shortcuts ────────────────────────
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && fsOpen) {
+      e.preventDefault();
+      closeFocusMode();
+    }
+    if (e.key === ' ' && fsOpen) {
+      e.preventDefault();
+      // Proxy Space to the user's pause/start button
+      if (fsUser) {
+        const pauseBtn = $(`${fsUser}Pause`);
+        const startBtn = $(`${fsUser}Start`);
+        if (pauseBtn && !pauseBtn.disabled) {
+          pauseBtn.click();
+        } else if (startBtn && !startBtn.disabled) {
+          startBtn.click();
+        }
+      }
+    }
+    // 'F' key: open focus mode for the first active user (or dev)
+    if ((e.key === 'f' || e.key === 'F') && !fsOpen && !e.ctrlKey && !e.metaKey) {
+      const activeEl = document.activeElement;
+      const tag = activeEl ? activeEl.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      // Find which user is active, prefer active one
+      const devActive  = getStatusDotActive('dev');
+      const oshuActive = getStatusDotActive('oshu');
+      openFocusMode(devActive ? 'dev' : oshuActive ? 'oshu' : 'dev');
+    }
+  });
+
+  // ── Resize handler ────────────────────────────
+  window.addEventListener('resize', function() {
+    if (!fsOpen) return;
+    const canvas = $('fsCanvas');
+    if (canvas) {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+  });
+
+  // ── Click backdrop to close ───────────────────
+  $('fsOverlay').addEventListener('click', function(e) {
+    if (e.target === $('fsBg') || e.target === $('fsGrid') || e.target === $('fsScanlines')) {
+      closeFocusMode();
+    }
+  });
+
+})();
+</script>
+
 </body>
-</html>
