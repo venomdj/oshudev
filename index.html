@@ -1027,9 +1027,461 @@ h1 {
   #fsRingGlow { inset: -14px; }
   #fsRingBorder { inset: -12px; }
 }
+
+/* ══════════════════════════════════════════════════════
+   ── PROFILE SELECTION SCREEN ───────────────────────── 
+   ══════════════════════════════════════════════════════ */
+
+#profileScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #080810;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.65s cubic-bezier(0.4,0,0.2,1), transform 0.65s cubic-bezier(0.4,0,0.2,1);
+}
+#profileScreen.ps-exit {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+#profileScreen.ps-hidden { display: none; }
+
+/* Ambient canvas behind everything */
+#psCanvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Background grid */
+#profileScreen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Large ambient orbs */
+.ps-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(160px);
+  pointer-events: none;
+  z-index: 1;
+  animation: psOrbFloat 8s ease-in-out infinite;
+}
+.ps-orb-blue {
+  width: 800px; height: 800px;
+  background: rgba(91,156,246,0.07);
+  top: -300px; left: -220px;
+  animation-delay: 0s;
+}
+.ps-orb-pink {
+  width: 650px; height: 650px;
+  background: rgba(244,114,182,0.065);
+  bottom: -200px; right: -160px;
+  animation-delay: -4s;
+}
+.ps-orb-purple {
+  width: 500px; height: 500px;
+  background: rgba(167,139,250,0.05);
+  top: 30%; left: 50%;
+  transform: translateX(-50%);
+  animation-delay: -2s;
+}
+@keyframes psOrbFloat {
+  0%,100% { transform: translate(0,0); }
+  33%      { transform: translate(20px,-30px); }
+  66%      { transform: translate(-15px,20px); }
+}
+.ps-orb-blue { animation-name: psOrbFloatBlue; }
+.ps-orb-pink { animation-name: psOrbFloatPink; }
+@keyframes psOrbFloatBlue {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%      { transform: translate(30px,-40px) scale(1.05); }
+}
+@keyframes psOrbFloatPink {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%      { transform: translate(-25px,35px) scale(1.04); }
+}
+
+/* Floating emoji particles */
+.ps-float-emoji {
+  position: absolute;
+  font-size: 28px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  animation: psEmojiFloat linear infinite;
+  filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));
+}
+@keyframes psEmojiFloat {
+  0%   { opacity: 0;   transform: translateY(0)   rotate(0deg)   scale(0.7); }
+  10%  { opacity: 0.7; }
+  85%  { opacity: 0.5; }
+  100% { opacity: 0;   transform: translateY(-110vh) rotate(360deg) scale(1.1); }
+}
+
+/* Content wrapper */
+#psContent {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 700px;
+  padding: 0 20px;
+}
+
+/* Logo / Title area */
+.ps-title-wrap {
+  text-align: center;
+  margin-bottom: 44px;
+  animation: psSlideDown 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  animation-delay: 0.1s;
+}
+@keyframes psSlideDown {
+  from { opacity:0; transform: translateY(-28px) scale(0.93); }
+  to   { opacity:1; transform: translateY(0)     scale(1);    }
+}
+
+.ps-logo-emoji {
+  font-size: 52px;
+  display: block;
+  margin-bottom: 14px;
+  animation: psLogoBounce 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 24px rgba(167,139,250,0.5));
+}
+@keyframes psLogoBounce {
+  0%,100% { transform: translateY(0) rotate(-4deg) scale(1); }
+  50%     { transform: translateY(-8px) rotate(4deg) scale(1.06); }
+}
+
+.ps-title {
+  font-size: clamp(26px, 5vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(120deg, #5b9cf6 0%, #a78bfa 40%, #f472b6 80%, #fb7185 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(167,139,250,0.3));
+  margin-bottom: 8px;
+}
+.ps-subtitle {
+  font-size: 14px;
+  color: var(--text-3);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Profile card row */
+.ps-cards-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  animation: psCardsUp 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  animation-delay: 0.25s;
+  flex-wrap: wrap;
+}
+@keyframes psCardsUp {
+  from { opacity:0; transform: translateY(36px) scale(0.92); }
+  to   { opacity:1; transform: translateY(0)    scale(1);    }
+}
+
+.ps-card {
+  position: relative;
+  width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 36px 24px 32px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  transition:
+    transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Top shimmer line */
+.ps-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 28px 28px 0 0;
+  opacity: 0.8;
+  transition: opacity 0.3s;
+}
+.ps-card.dev-card::before  { background: linear-gradient(90deg, transparent, var(--blue), transparent); }
+.ps-card.oshu-card::before { background: linear-gradient(90deg, transparent, var(--pink), transparent); }
+
+/* Inner glow */
+.ps-card-glow {
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  filter: blur(60px);
+  bottom: -80px; left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.dev-card  .ps-card-glow { background: rgba(91,156,246,0.25); }
+.oshu-card .ps-card-glow { background: rgba(244,114,182,0.22); }
+
+.ps-card:hover .ps-card-glow,
+.ps-card:focus .ps-card-glow { opacity: 1; }
+
+/* Hover & active states */
+.ps-card:hover {
+  transform: translateY(-8px) scale(1.025);
+}
+.ps-card.dev-card:hover {
+  border-color: rgba(91,156,246,0.4);
+  box-shadow: 0 20px 60px rgba(91,156,246,0.18), 0 0 0 1px rgba(91,156,246,0.2);
+}
+.ps-card.oshu-card:hover {
+  border-color: rgba(244,114,182,0.4);
+  box-shadow: 0 20px 60px rgba(244,114,182,0.18), 0 0 0 1px rgba(244,114,182,0.2);
+}
+.ps-card:active { transform: translateY(-4px) scale(0.98) !important; }
+
+/* Click ripple */
+.ps-card-ripple {
+  position: absolute;
+  border-radius: 50%;
+  width: 10px; height: 10px;
+  transform: scale(0);
+  opacity: 0.6;
+  pointer-events: none;
+  animation: psRipple 0.55s ease-out forwards;
+}
+.dev-card  .ps-card-ripple { background: rgba(91,156,246,0.45); }
+.oshu-card .ps-card-ripple { background: rgba(244,114,182,0.45); }
+@keyframes psRipple {
+  to { transform: scale(60); opacity: 0; }
+}
+
+/* Avatar ring */
+.ps-avatar-ring {
+  width: 90px; height: 90px;
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 20px;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.dev-card  .ps-avatar-ring { background: var(--blue-soft);  border: 1.5px solid rgba(91,156,246,0.28); }
+.oshu-card .ps-avatar-ring { background: var(--pink-soft);  border: 1.5px solid rgba(244,114,182,0.28); }
+
+.ps-card:hover .ps-avatar-ring { transform: scale(1.08) rotate(-3deg); }
+
+.ps-avatar-letter {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-family: var(--font);
+}
+.dev-card  .ps-avatar-letter { color: var(--blue); }
+.oshu-card .ps-avatar-letter { color: var(--pink); }
+
+/* Emoji mascot on card */
+.ps-card-emoji {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 28px;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.25));
+  animation: psCardEmojiWobble 3s ease-in-out infinite;
+}
+.dev-card  .ps-card-emoji { animation-delay: 0s; }
+.oshu-card .ps-card-emoji { animation-delay: -1.5s; }
+@keyframes psCardEmojiWobble {
+  0%,100% { transform: rotate(-8deg) scale(1); }
+  50%     { transform: rotate(8deg)  scale(1.1); }
+}
+
+.ps-card-name {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+.dev-card  .ps-card-name { color: var(--blue); }
+.oshu-card .ps-card-name { color: var(--pink); }
+
+.ps-card-tagline {
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.ps-card-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 11px 0;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  z-index: 2;
+}
+.dev-card  .ps-card-btn {
+  background: var(--blue-btn);
+  color: var(--blue);
+  border: 1px solid rgba(91,156,246,0.28);
+}
+.oshu-card .ps-card-btn {
+  background: var(--pink-btn);
+  color: var(--pink);
+  border: 1px solid rgba(244,114,182,0.28);
+}
+.dev-card:hover  .ps-card-btn { background: rgba(91,156,246,0.28); box-shadow: 0 0 18px rgba(91,156,246,0.25); }
+.oshu-card:hover .ps-card-btn { background: rgba(244,114,182,0.28); box-shadow: 0 0 18px rgba(244,114,182,0.25); }
+
+/* "Last visited" pill */
+.ps-last-badge {
+  margin-top: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.4s;
+  position: relative; z-index: 2;
+}
+.ps-last-badge.show { opacity: 1; }
+.dev-card  .ps-last-badge { background: var(--blue-soft); color: var(--blue); }
+.oshu-card .ps-last-badge { background: var(--pink-soft); color: var(--pink); }
+
+/* "Together" link pill at bottom */
+.ps-together-btn {
+  margin-top: 36px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 10px 26px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.25s;
+  animation: psCardsUp 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  animation-delay: 0.4s;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ps-together-btn:hover {
+  color: var(--text-2);
+  border-color: var(--border-h);
+  background: var(--surface3);
+  transform: translateY(-2px);
+}
+
+/* Entry animation for the whole screen */
+@keyframes psScreenIn {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+#profileScreen { animation: psScreenIn 0.4s ease; }
+
+/* Mobile responsive */
+@media (max-width: 520px) {
+  .ps-cards-row { gap: 14px; }
+  .ps-card { width: 155px; padding: 28px 16px 24px; border-radius: 22px; }
+  .ps-avatar-ring { width: 70px; height: 70px; border-radius: 20px; margin-bottom: 14px; }
+  .ps-avatar-letter { font-size: 28px; }
+  .ps-card-name { font-size: 18px; }
+  .ps-card-emoji { font-size: 22px; }
+  .ps-title { font-size: 24px; }
+  .ps-logo-emoji { font-size: 40px; }
+  .ps-card-btn { font-size: 12px; padding: 9px 0; }
+  .ps-together-btn { font-size: 12px; padding: 8px 18px; }
+}
 </style>
 </head>
 <body>
+
+<!-- ════════════════════════════════════════════════════
+     PROFILE SELECTION SCREEN
+     ════════════════════════════════════════════════════ -->
+<div id="profileScreen">
+  <canvas id="psCanvas"></canvas>
+  <div class="ps-orb ps-orb-blue"></div>
+  <div class="ps-orb ps-orb-pink"></div>
+  <div class="ps-orb ps-orb-purple"></div>
+  <div id="psEmojiLayer"></div>
+  <div id="psContent">
+    <div class="ps-title-wrap">
+      <span class="ps-logo-emoji">📚</span>
+      <div class="ps-title">Study Dashboard</div>
+      <div class="ps-subtitle">Choose your profile</div>
+    </div>
+    <div class="ps-cards-row">
+      <div class="ps-card dev-card" id="psDevCard" onclick="selectProfile('dev', event)" tabindex="0" role="button" aria-label="Enter as DEV">
+        <div class="ps-card-glow"></div>
+        <span class="ps-card-emoji">🌠</span>
+        <div class="ps-avatar-ring">
+          <span class="ps-avatar-letter">D</span>
+        </div>
+        <div class="ps-card-name">DEV</div>
+        <div class="ps-card-tagline">Ready to grind? 💙<br>Let's go.</div>
+        <button class="ps-card-btn">Enter Dashboard</button>
+        <span class="ps-last-badge" id="psDevBadge">Last visited</span>
+      </div>
+      <div class="ps-card oshu-card" id="psOshuCard" onclick="selectProfile('oshu', event)" tabindex="0" role="button" aria-label="Enter as OSHU">
+        <div class="ps-card-glow"></div>
+        <span class="ps-card-emoji">🌸</span>
+        <div class="ps-avatar-ring">
+          <span class="ps-avatar-letter">O</span>
+        </div>
+        <div class="ps-card-name">OSHU</div>
+        <div class="ps-card-tagline">Focus mode: on 🌸<br>You've got this.</div>
+        <button class="ps-card-btn">Enter Dashboard</button>
+        <span class="ps-last-badge" id="psOshuBadge">Last visited</span>
+      </div>
+    </div>
+    <button class="ps-together-btn" onclick="selectProfile('together', event)">
+      <span>🤝</span> Enter Together
+    </button>
+  </div>
+</div>
 
 <div class="orb orb-blue"></div>
 <div class="orb orb-pink"></div>
@@ -2743,6 +3195,189 @@ function switchTab(name, btn) {
     }
   });
 
+})();
+</script>
+
+<!-- ════════════════════════════════════════════════════
+     PROFILE SELECTION SCREEN — JS
+     ════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  const PS_KEY    = 'studydash_last_profile';
+  const EMOJIS    = ['📚','✏️','🌠','🌸','⭐','💫','🌙','☕','🎯','🔥','💙','🩷','📖','🧠','✨','🌟','💎','🏆','⚡','🎓'];
+  const FLOAT_COUNT = 18;
+
+  // ── Check localStorage for last profile ─────────────
+  const lastProfile = localStorage.getItem(PS_KEY);
+  if (lastProfile === 'dev')  { document.getElementById('psDevBadge').classList.add('show'); }
+  if (lastProfile === 'oshu') { document.getElementById('psOshuBadge').classList.add('show'); }
+
+  // ── Particle canvas ──────────────────────────────────
+  const canvas = document.getElementById('psCanvas');
+  const ctx    = canvas.getContext('2d');
+  let particles = [];
+  let rafId;
+
+  function resizeCanvas() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  function spawnParticle() {
+    const colors = [
+      'rgba(91,156,246,',
+      'rgba(244,114,182,',
+      'rgba(167,139,250,',
+      'rgba(251,113,133,',
+    ];
+    return {
+      x:     Math.random() * canvas.width,
+      y:     Math.random() * canvas.height,
+      r:     Math.random() * 1.8 + 0.4,
+      vx:    (Math.random() - 0.5) * 0.3,
+      vy:    (Math.random() - 0.5) * 0.3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: Math.random() * 0.5 + 0.1,
+      life:  Math.random(),
+      dlife: (Math.random() * 0.003 + 0.001) * (Math.random() < 0.5 ? 1 : -1),
+    };
+  }
+
+  for (let i = 0; i < 80; i++) particles.push(spawnParticle());
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of particles) {
+      p.x    += p.vx;
+      p.y    += p.vy;
+      p.life += p.dlife;
+      if (p.life > 1 || p.life < 0) p.dlife *= -1;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width)  p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+
+      const a = p.alpha * p.life;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + a + ')';
+      ctx.fill();
+    }
+
+    // Draw faint connection lines between close particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx   = particles[i].x - particles[j].x;
+        const dy   = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 90) {
+          const lineAlpha = (1 - dist / 90) * 0.06;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = 'rgba(167,139,250,' + lineAlpha + ')';
+          ctx.lineWidth   = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    rafId = requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+
+  // ── Floating emoji layer ─────────────────────────────
+  const layer = document.getElementById('psEmojiLayer');
+  for (let i = 0; i < FLOAT_COUNT; i++) {
+    const span = document.createElement('span');
+    span.className = 'ps-float-emoji';
+    span.textContent = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+    const leftPct  = Math.random() * 100;
+    const duration = 12 + Math.random() * 20;
+    const delay    = -(Math.random() * duration);
+    const size     = 18 + Math.random() * 22;
+    span.style.cssText = `
+      left: ${leftPct}%;
+      bottom: -60px;
+      font-size: ${size}px;
+      animation-duration: ${duration}s;
+      animation-delay: ${delay}s;
+    `;
+    layer.appendChild(span);
+  }
+
+  // ── Keyboard support ─────────────────────────────────
+  document.addEventListener('keydown', function(e) {
+    const ps = document.getElementById('profileScreen');
+    if (!ps || ps.classList.contains('ps-hidden')) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      const focused = document.activeElement;
+      if (focused && focused.closest('.ps-card')) {
+        focused.click();
+      }
+    }
+  });
+
+  // ── Card ripple effect ───────────────────────────────
+  function addRipple(card, e) {
+    const rect   = card.getBoundingClientRect();
+    const x      = (e.clientX || rect.left + rect.width / 2)  - rect.left;
+    const y      = (e.clientY || rect.top  + rect.height / 2) - rect.top;
+    const ripple = document.createElement('div');
+    ripple.className = 'ps-card-ripple';
+    ripple.style.left = (x - 5) + 'px';
+    ripple.style.top  = (y - 5) + 'px';
+    card.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+  }
+
+  // ── Select profile ────────────────────────────────────
+  window.selectProfile = function(profile, e) {
+    // Ripple on the card
+    const card = e && e.currentTarget;
+    if (card && card.classList.contains('ps-card')) addRipple(card, e);
+
+    // Save to localStorage
+    if (profile !== 'together') {
+      localStorage.setItem(PS_KEY, profile);
+    }
+
+    // Brief delay for ripple to show, then animate out
+    setTimeout(() => {
+      const ps = document.getElementById('profileScreen');
+      ps.classList.add('ps-exit');
+
+      // Stop particle canvas
+      if (rafId) cancelAnimationFrame(rafId);
+
+      setTimeout(() => {
+        ps.classList.add('ps-hidden');
+        ps.classList.remove('ps-exit');
+      }, 680);
+    }, 120);
+  };
+
+  // ── Auto-skip if returning within 30 min ─────────────
+  const PS_TIME_KEY = 'studydash_last_visit_time';
+  const lastVisit   = parseInt(localStorage.getItem(PS_TIME_KEY) || '0', 10);
+  const SKIP_WINDOW = 30 * 60 * 1000; // 30 minutes
+  localStorage.setItem(PS_TIME_KEY, Date.now());
+
+  if (lastProfile && (Date.now() - lastVisit < SKIP_WINDOW)) {
+    // Quick fade out — skip the profile screen for returning users within 30 min
+    const ps = document.getElementById('profileScreen');
+    ps.style.animation = 'none';
+    ps.style.opacity   = '0';
+    ps.style.transition = 'opacity 0.3s ease';
+    // tiny timeout to allow layout to paint
+    setTimeout(() => {
+      ps.style.opacity = '0';
+      setTimeout(() => { ps.classList.add('ps-hidden'); }, 320);
+    }, 60);
+  }
 })();
 </script>
 
