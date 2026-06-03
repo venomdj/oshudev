@@ -4,17 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OshuDev Co-op Platform</title>
+    <!-- Tailwind CSS for layout utilities -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React and ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel for JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- FIREBASE CONFIGURATION & INITIALIZATION ---
-        // Dynamically importing Firebase standard modules via standard ES modules inside Babel standalone
+        // Inject your custom architecture style tokens directly into the app
         const firebaseConfig = {
           apiKey: "AIzaSyCVS5CpNPA5Ze9XDVFCw-ngeZNo1KzaZYY",
           authDomain: "oshudev-333.firebaseapp.com",
@@ -23,31 +25,6 @@
           messagingSenderId: "595314827472",
           appId: "1:595314827472:web:84b1e034f4b3a6e5523ed5"
         };
-
-        // We use dynamic imports within Babel standalone to safely fetch modules
-        let db = null;
-        let doc, setDoc, onSnapshot, collection, query, getDocs, deleteDoc, addDoc;
-
-        import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js").then((FirebaseApp) => {
-          import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js").then((FirebaseFirestore) => {
-            const app = FirebaseApp.initializeApp(firebaseConfig);
-            db = FirebaseFirestore.getFirestore(app);
-            
-            // Extract references for structural database updates
-            doc = FirebaseFirestore.doc;
-            setDoc = FirebaseFirestore.setDoc;
-            onSnapshot = FirebaseFirestore.onSnapshot;
-            collection = FirebaseFirestore.collection;
-            query = FirebaseFirestore.query;
-            getDocs = FirebaseFirestore.getDocs;
-            deleteDoc = FirebaseFirestore.deleteDoc;
-            addDoc = FirebaseFirestore.addDoc;
-
-            // Trigger global rendering check or reload window if needed
-            window.dispatchEvent(new Event('firebase-ready'));
-          }).catch(err => console.error("Firestore failure:", err));
-        }).catch(err => console.error("Firebase App failure:", err));
-
         const { useState, useEffect, useRef, useCallback } = React;
 
         const CSS = `
@@ -116,6 +93,10 @@
           @keyframes fadeIn    { from { opacity:0; } to { opacity:1; } }
           @keyframes scaleIn   { from { opacity:0; transform:scale(0.93); } to { opacity:1; transform:scale(1); } }
           @keyframes pulse-soft { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+          @keyframes spin      { to { transform:rotate(360deg); } }
+          @keyframes ringPulse { 0% { transform:scale(1); opacity:0.8; } 100% { transform:scale(1.5); opacity:0; } }
+          @keyframes timerGlow { 0%,100% { text-shadow:0 0 24px currentColor; } 50% { text-shadow:0 0 48px currentColor, 0 0 80px currentColor; } }
+          @keyframes celebrationPop { 0% { transform:scale(0) rotate(-8deg); opacity:0; } 60% { transform:scale(1.06) rotate(2deg); } 100% { transform:scale(1) rotate(0deg); opacity:1; } }
 
           .fade-up    { animation: fadeUp 0.45s var(--ease-smooth) both; }
           .scale-in   { animation: scaleIn 0.3s var(--ease-spring) both; }
@@ -143,6 +124,7 @@
           .btn-primary {
             background: var(--dev-primary); color: #fff;
             padding: 10px 18px;
+            box-shadow: 0 0 20px var(--dev-glow);
           }
           .btn-primary:hover { filter: brightness(1.12); }
           .btn-ghost {
@@ -151,6 +133,7 @@
           }
           .btn-ghost:hover { background: var(--glass-strong); color: var(--text-primary); border-color: var(--border-bright); }
           .btn-danger { background: rgba(248,113,113,0.12); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.2); padding: 6px 12px; }
+          .btn-danger:hover { background: rgba(248,113,113,0.2); }
 
           .nav-item {
             display: flex; align-items: center; gap: 10px;
@@ -165,15 +148,19 @@
           .stat-card {
             background: var(--bg-card); border: 1px solid var(--border);
             border-radius: var(--radius-lg); padding: 20px;
+            transition: all 0.18s var(--ease-smooth);
           }
+          .stat-card:hover { border-color: var(--border-bright); transform: translateY(-1px); }
 
           .input {
             background: var(--bg-elevated); border: 1px solid var(--border);
             color: var(--text-primary); border-radius: var(--radius-md);
             padding: 10px 14px; font-family: var(--font-body); font-size: 14px;
-            outline: none; width: 100%;
+            outline: none; transition: border-color 0.18s, box-shadow 0.18s;
+            width: 100%;
           }
-          .input:focus { border-color: var(--dev-primary); }
+          .input:focus { border-color: var(--dev-primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+          .input::placeholder { color: var(--text-muted); }
 
           .progress-track {
             background: var(--bg-elevated); border-radius: 999px;
@@ -193,54 +180,129 @@
             position: fixed; inset: 0; background: rgba(7,8,16,0.82);
             backdrop-filter: blur(14px); z-index: 1000;
             display: flex; align-items: flex-start; justify-content: center;
-            padding-top: 14vh;
+            padding-top: 14vh; animation: fadeIn 0.13s ease;
           }
           .cmd-box {
             width: 560px; max-width: 92vw;
             background: var(--bg-elevated); border: 1px solid var(--border-bright);
             border-radius: var(--radius-xl); overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(99,102,241,0.08);
+            animation: scaleIn 0.22s var(--ease-spring);
           }
 
           .timer-ring { transition: stroke-dashoffset 0.5s var(--ease-smooth); }
-          .heatmap-cell { width: 11px; height: 11px; border-radius: 2px; background: var(--bg-elevated); }
+
+          .heatmap-cell {
+            width: 11px; height: 11px; border-radius: 2px;
+            transition: transform 0.12s; cursor: default;
+            position: relative;
+          }
+          .heatmap-cell:hover { transform: scale(1.35); z-index: 1; }
+          .heatmap-cell:hover::after {
+            content: attr(data-tip);
+            position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+            background: var(--bg-elevated); border: 1px solid var(--border-bright);
+            padding: 2px 6px; border-radius: 4px; font-size: 9px; white-space: nowrap; z-index: 50;
+          }
+
+          .celebration { animation: celebrationPop 0.45s var(--ease-spring) both; }
+
+          @media (max-width: 768px) {
+            .sidebar { display: none !important; }
+            .main-content { margin-left: 0 !important; }
+          }
         `;
 
+        // Style node injection
         const styleNode = document.createElement("style");
         styleNode.appendChild(document.createTextNode(CSS));
         document.head.appendChild(styleNode);
 
-        // --- SEED SELECTION TEMPLATES ---
-        const INITIAL_PROFILES = {
+        // --- CONSTANTS & HELPERS FROM VISUAL DESIGN CODE ---
+        const PROFILES = {
           DEV: {
-            id: "DEV", name: "Dev", fullName: "Dev", avatar: "D",
-            color: "#6366f1", glow: "rgba(99,102,241,0.3)", soft: "rgba(99,102,241,0.1)", light: "#818cf8",
-            title: "Full-Stack Engineer", streak: 12, xp: 3840, level: 7, totalHours: 284, focusScore: 87, todayMinutes: 142,
-            weeklyHours: [3.2, 4.5, 2.8, 5.1, 3.9, 6.2, 4.0],
+            id: "DEV", name: "Dev", fullName: "Dev Kumar",
+            avatar: "D", initials: "DK",
+            color: "#6366f1", glow: "rgba(99,102,241,0.3)",
+            soft: "rgba(99,102,241,0.1)", light: "#818cf8",
+            theme: "indigo", title: "Full-Stack Engineer",
+            streak: 12, xp: 3840, level: 7,
+            totalHours: 284, focusScore: 87,
             goals: [
-              { id: "g1", title: "DSA Practice", target: 120, done: 84, unit: "min", color: "#6366f1" },
-              { id: "g2", title: "System Design", target: 60, done: 45, unit: "min", color: "#2dd4bf" },
-              { id: "g3", title: "LeetCode", target: 3, done: 2, unit: "problems", color: "#a78bfa" },
+              { id: "g1", title: "DSA Practice",   target: 120, done: 84,  unit: "min", color: "#6366f1" },
+              { id: "g2", title: "System Design",  target: 60,  done: 45,  unit: "min", color: "#2dd4bf" },
+              { id: "g3", title: "LeetCode",       target: 3,   done: 2,   unit: "problems", color: "#a78bfa" },
             ],
-            achievements: ["first_session","streak_7","century_hours"]
+            weeklyHours: [3.2, 4.5, 2.8, 5.1, 3.9, 6.2, 4.0],
+            monthlyHours: [18.2,22.4,19.8,24.1,21.3,26.5,23.7,27.2,24.9,28.4,25.1,29.6],
+            todayMinutes: 142,
+            achievements: ["first_session","streak_7","century_hours","focus_master"],
+            recentSessions: [
+              { label: "Deep Work", dur: "52min", xp: 104, time: "2h ago", color: "#6366f1", type: "deep" },
+              { label: "Review",    dur: "25min", xp: 50,  time: "5h ago", color: "#2dd4bf", type: "review" },
+              { label: "Pomodoro",  dur: "25min", xp: 50,  time: "Yesterday", color: "#fbbf24", type: "pomodoro" },
+              { label: "Deep Work", dur: "90min", xp: 180, time: "2 days ago", color: "#6366f1", type: "deep" },
+            ],
+            notes: [
+              { id: 1, title: "Study Notes — Algorithms", content: "Binary search: O(log n). Merge sort: O(n log n).\n\nAlways check edge cases first. Think about:\n- Empty arrays\n- Single element\n- Duplicates\n\nFor DP: identify subproblems, write recurrence, add memoization.", tag: "DSA", updated: "2h ago", pinned: true },
+              { id: 2, title: "System Design Patterns", content: "Load balancing strategies:\n- Round Robin: sequential distribution\n- Least Connections: routes to least-busy server\n- IP Hash: consistent routing per client\n\nUse consistent hashing for distributed caches. Replication factor >= 3 for durability.", tag: "Design", updated: "Yesterday", pinned: false },
+              { id: 3, title: "Weekly Review", content: "Good progress on graphs this week. Need more practice on DP problems.\n\nSchedule a mock interview session with Oshu this weekend.\n\nGoals for next week:\n1. Complete 15 LeetCode problems\n2. Read system design chapter 5-6\n3. Build a mini project using Redis", tag: "Review", updated: "3 days ago", pinned: false },
+            ],
+            tasks: [
+              { id: 1, text: "Review binary search trees",        done: false, priority: "high",   created: new Date().toISOString(), dueDate: "Today" },
+              { id: 2, text: "Complete 2 LeetCode problems",      done: true,  priority: "high",   created: new Date().toISOString(), dueDate: "Today" },
+              { id: 3, text: "Read system design chapter 4",      done: false, priority: "medium", created: new Date().toISOString(), dueDate: "Tomorrow" },
+              { id: 4, text: "Practice whiteboard coding",        done: false, priority: "medium", created: new Date().toISOString(), dueDate: "This week" },
+              { id: 5, text: "Update study notes",                done: true,  priority: "low",    created: new Date().toISOString(), dueDate: "This week" },
+            ],
           },
           OSHU: {
-            id: "OSHU", name: "Oshu", fullName: "Oshu", avatar: "O",
-            color: "#f472b6", glow: "rgba(244,114,182,0.3)", soft: "rgba(244,114,182,0.1)", light: "#f9a8d4",
-            title: "Pre-Med Student", streak: 8, xp: 2960, level: 6, totalHours: 218, focusScore: 91, todayMinutes: 128,
-            weeklyHours: [2.8, 3.5, 4.2, 3.9, 5.0, 4.8, 3.2],
+            id: "OSHU", name: "Oshu", fullName: "Oshu Priya",
+            avatar: "O", initials: "OP",
+            color: "#f472b6", glow: "rgba(244,114,182,0.3)",
+            soft: "rgba(244,114,182,0.1)", light: "#f9a8d4",
+            theme: "rose", title: "Pre-Med Student",
+            streak: 8, xp: 2960, level: 6,
+            totalHours: 218, focusScore: 91,
             goals: [
-              { id: "g4", title: "Anatomy Review", target: 90, done: 90, unit: "min", color: "#f472b6" },
-              { id: "g5", title: "Biochemistry", target: 60, done: 38, unit: "min", color: "#fbbf24" },
+              { id: "g4", title: "Anatomy Review",  target: 90,  done: 90, unit: "min", color: "#f472b6" },
+              { id: "g5", title: "Biochemistry",    target: 60,  done: 38, unit: "min", color: "#fbbf24" },
+              { id: "g6", title: "Practice MCQs",   target: 40,  done: 22, unit: "questions", color: "#4ade80" },
             ],
-            achievements: ["first_session","streak_7","early_bird"]
-          }
+            weeklyHours: [2.8, 3.5, 4.2, 3.9, 5.0, 4.8, 3.2],
+            monthlyHours: [16.4,19.2,21.8,20.4,23.6,22.9,25.1,24.8,22.3,26.1,23.8,27.4],
+            todayMinutes: 128,
+            achievements: ["first_session","streak_7","focus_master","early_bird"],
+            recentSessions: [
+              { label: "Anatomy Deep Dive", dur: "45min", xp: 90,  time: "1h ago", color: "#f472b6", type: "deep" },
+              { label: "Biochem Review",    dur: "30min", xp: 60,  time: "4h ago", color: "#fbbf24", type: "review" },
+              { label: "MCQ Practice",      dur: "25min", xp: 50,  time: "Yesterday", color: "#4ade80", type: "pomodoro" },
+              { label: "Deep Work",         dur: "60min", xp: 120, time: "2 days ago", color: "#f472b6", type: "deep" },
+            ],
+            notes: [
+              { id: 1, title: "Anatomy — Cardiac",  content: "Heart chambers: RA → RV → Pulmonary → LA → LV → Aorta.\n\nCoronary arteries:\n- LCA: supplies anterior + lateral walls\n- RCA: supplies inferior wall + SA node\n\nCommon murmurs: Aortic stenosis (systolic, crescendo-decrescendo), Mitral regurg (holosystolic).", tag: "Anatomy", updated: "1h ago", pinned: true },
+              { id: 2, title: "Biochemistry Notes",  content: "Glycolysis yield: 2 ATP net (substrate level), 2 NADH.\nKrebs cycle: 3 NADH, 1 FADH2, 1 GTP per turn.\nOxidative phosphorylation: ~32 ATP total.\n\nKey enzymes: Hexokinase (committed step), PFK-1 (rate-limiting), Pyruvate kinase.", tag: "Biochem", updated: "3h ago", pinned: false },
+              { id: 3, title: "Study Plan — Week",   content: "Monday: Anatomy review (2hr)\nTuesday: Biochem MCQs (1.5hr)\nWednesday: Pathology overview\nThursday: Mock exam sections\nFriday: Weak areas + notes\nWeekend: Light review + co-op session with Dev", tag: "Plan", updated: "Yesterday", pinned: false },
+            ],
+            tasks: [
+              { id: 1, text: "Complete anatomy flashcards",      done: true,  priority: "high",   created: new Date().toISOString(), dueDate: "Today" },
+              { id: 2, text: "Review biochem enzymes",           done: false, priority: "high",   created: new Date().toISOString(), dueDate: "Today" },
+              { id: 3, text: "Practice 40 MCQs",                done: false, priority: "medium", created: new Date().toISOString(), dueDate: "Tomorrow" },
+              { id: 4, text: "Summarize cardiovascular system",  done: false, priority: "medium", created: new Date().toISOString(), dueDate: "This week" },
+              { id: 5, text: "Co-op session with Dev",           done: false, priority: "low",    created: new Date().toISOString(), dueDate: "Weekend" },
+            ],
+          },
         };
 
         const ACHIEVEMENTS_DEF = {
-          first_session: { icon: "🎯", title: "First Focus" },
-          streak_7:      { icon: "🔥", title: "Week Warrior" },
-          century_hours: { icon: "💯", title: "Century Club" },
-          early_bird:    { icon: "🌅", title: "Early Bird" },
+          first_session: { icon: "🎯", title: "First Focus",   desc: "Completed your first session" },
+          streak_7:      { icon: "🔥", title: "Week Warrior",  desc: "7-day study streak" },
+          century_hours: { icon: "💯", title: "Century Club",  desc: "100+ total study hours" },
+          focus_master:  { icon: "🧘", title: "Focus Master",  desc: "90%+ weekly focus score" },
+          early_bird:    { icon: "🌅", title: "Early Bird",    desc: "Studied before 8am" },
+          streak_30:     { icon: "⚡", title: "Month Legend",  desc: "30-day study streak" },
+          deep_worker:   { icon: "🔬", title: "Deep Worker",   desc: "10 deep work sessions" },
+          night_owl:     { icon: "🌙", title: "Night Owl",     desc: "Studied past midnight" },
         };
 
         const NAV_ITEMS = [
@@ -251,41 +313,117 @@
           { id: "stats",     icon: "◻", label: "Analytics" },
           { id: "notes",     icon: "✎", label: "Notes" },
           { id: "coop",      icon: "◑", label: "Co-op" },
+          { id: "calendar",  icon: "▦", label: "Calendar" },
         ];
 
         const AMBIENT_SOUNDS = [
-          { id: "none", label: "Silent", icon: "○" },
-          { id: "rain", label: "Rain", icon: "🌧" }
+          { id: "none",   label: "Silent",       icon: "○" },
+          { id: "rain",   label: "Rain",         icon: "🌧" },
+          { id: "forest", label: "Forest",       icon: "🌲" },
+          { id: "cafe",   label: "Coffee Shop",  icon: "☕" },
+          { id: "waves",  label: "Ocean Waves",  icon: "🌊" },
+          { id: "space",  label: "Deep Space",   icon: "✦" },
         ];
 
-        const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
-        const fmtHours = min => (min/60).toFixed(1)+"h";
-        const todayStr = () => new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+        const COMMANDS = [
+          { id: "timer_start",   label: "Start Focus Timer",  icon: "◎", section: "Actions" },
+          { id: "timer_pomodo",  label: "Start Pomodoro",     icon: "⏱", section: "Actions" },
+          { id: "new_task",      label: "New Task",           icon: "✚", section: "Actions" },
+          { id: "new_note",      label: "New Note",           icon: "✎", section: "Actions" },
+          { id: "nav_dashboard", label: "Go to Dashboard",    icon: "⬡", section: "Navigate" },
+          { id: "nav_timer",     label: "Go to Timer",        icon: "◎", section: "Navigate" },
+          { id: "nav_tasks",     label: "Go to Tasks",        icon: "☑", section: "Navigate" },
+          { id: "nav_stats",     label: "Go to Analytics",    icon: "◻", section: "Navigate" },
+          { id: "nav_coop",      label: "Go to Co-op",        icon: "◑", section: "Navigate" },
+          { id: "switch_user",   label: "Switch Profile",     icon: "⇄", section: "Account" },
+        ];
 
+        const fmtTime  = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+        const fmtHours = min => (min/60).toFixed(1)+"h";
+        const xpForLvl = lvl => lvl * lvl * 500;
+        const todayStr = () => new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+        const getWeek  = () => {
+          const d = new Date(); const start = new Date(d.getFullYear(),0,1);
+          return Math.ceil(((d-start)/86400000 + start.getDay()+1)/7);
+        };
+
+        const generateHeatmap = () => {
+          const data = [];
+          for (let w = 0; w < 26; w++) {
+            const week = [];
+            for (let d = 0; d < 7; d++) {
+              const recency = (w + 1) / 26;
+              const val = Math.random() < 0.28 ? 0 : Math.floor(Math.random()*4+1) * recency;
+              week.push(Math.min(4, Math.round(val)));
+            }
+            data.push(week);
+          }
+          return data;
+        };
+
+        // --- ATOM COMPONENTS ---
         function AmbientOrbs({ user }) {
-          return <div className="ambient" style={{ width:580, height:580, top:-180, right:-80, background: user.color }}/>;
+          return (
+            <React.Fragment>
+              <div className="ambient" style={{ width:580, height:580, top:-180, right:-80, background: user.color }}/>
+              <div className="ambient" style={{ width:320, height:320, bottom:-80, left:-60, background: user.color, opacity:0.04 }}/>
+            </React.Fragment>
+          );
         }
 
-        function Avatar({ user, size=36 }) {
+        function Avatar({ user, size=36, showRing=false, online=true }) {
           return (
             <div style={{
               width:size, height:size, borderRadius:"50%",
               background:`linear-gradient(135deg, ${user.color}, ${user.light})`,
               display:"flex", alignItems:"center", justifyContent:"center",
-              fontFamily:"var(--font-display)", fontWeight:700, fontSize: size*0.37, color:"white"
-            }}>{user.avatar}</div>
+              fontFamily:"var(--font-display)", fontWeight:700,
+              fontSize: size*0.37, color:"white", flexShrink:0,
+              position:"relative",
+              boxShadow: showRing ? `0 0 0 2px var(--bg-base), 0 0 0 3.5px ${user.color}` : "none",
+            }}>
+              {user.avatar}
+              {online && (
+                <div style={{
+                  position:"absolute", bottom:0, right:0,
+                  width:size*0.27, height:size*0.27, borderRadius:"50%",
+                  background:"var(--accent-green)", border:"2px solid var(--bg-base)",
+                }}/>
+              )}
+            </div>
+          );
+        }
+
+        function XPBar({ user }) {
+          const currXP = user.xp - xpForLvl(user.level-1);
+          const needed = xpForLvl(user.level) - xpForLvl(user.level-1);
+          const pct    = Math.min(100,(currXP/needed)*100);
+          return (
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:10.5, color:"var(--text-muted)" }}>
+                <span style={{ color:user.color, fontWeight:700 }}>Lv. {user.level}</span>
+                <span>{currXP} / {needed} XP</span>
+              </div>
+              <div className="progress-track" style={{ height:3 }}>
+                <div className="progress-fill" style={{ width:`${pct}%`, background:`linear-gradient(90deg, ${user.color}, ${user.light})` }}/>
+              </div>
+            </div>
           );
         }
 
         function TimerRing({ progress, color, size=200, strokeW=6, children }) {
-          const r = (size - strokeW*2) / 2;
+          const r    = (size - strokeW*2) / 2;
           const circ = 2 * Math.PI * r;
           return (
             <div style={{ position:"relative", width:size, height:size }}>
               <svg width={size} height={size} style={{ transform:"rotate(-90deg)" }}>
                 <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={strokeW}/>
                 <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={strokeW}
-                  strokeDasharray={circ} strokeDashoffset={circ * (1 - progress)} className="timer-ring"
+                  strokeLinecap="round"
+                  strokeDasharray={circ}
+                  strokeDashoffset={circ * (1 - progress)}
+                  className="timer-ring"
+                  style={{ filter:`drop-shadow(0 0 7px ${color})` }}
                 />
               </svg>
               <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
@@ -295,16 +433,97 @@
           );
         }
 
-        function WelcomeScreen({ onSelect }) {
+        function Heatmap({ data, color }) {
+          const colorMap = [
+            "var(--bg-elevated)",
+            `${color}2e`, `${color}55`, `${color}88`, color,
+          ];
           return (
-            <div className="h-screen flex flex-col items-center justify-center bg-[var(--bg-deep)]">
-              <h1 className="font-display text-3xl font-extrabold text-white mb-8">Select Hub Identity Architecture Node</h1>
-              <div className="flex gap-6">
-                {Object.values(INITIAL_PROFILES).map(p => (
-                  <button key={p.id} onClick={() => onSelect(p.id)} className="glass-card p-6 w-48 flex flex-col items-center gap-4 text-center hover:scale-105 transition">
-                    <Avatar user={p} size={64} />
-                    <div className="font-display font-bold text-white">{p.fullName}</div>
-                    <div className="text-xs" style={{color: p.color}}>{p.title}</div>
+            <div style={{ display:"flex", gap:2.5, overflowX:"auto", paddingBottom:4 }}>
+              {data.map((week,wi) => (
+                <div key={wi} style={{ display:"flex", flexDirection:"column", gap:2.5 }}>
+                  {week.map((val,di) => (
+                    <div key={di} className="heatmap-cell"
+                      data-tip={val===0 ? "No activity" : `~${val*45}min`}
+                      style={{ background: colorMap[val] || colorMap[0] }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        function Sparkline({ data, color, height=36, width=90 }) {
+          if (!data || data.length < 2) return null;
+          const max = Math.max(...data, 0.01);
+          const pts = data.map((v,i) => `${(i/(data.length-1))*width},${height-(v/max)*height}`).join(" ");
+          return (
+            <svg width={width} height={height} style={{ overflow:"visible" }}>
+              <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5"
+                strokeLinejoin="round" style={{ filter:`drop-shadow(0 0 4px ${color}88)` }}/>
+            </svg>
+          );
+        }
+
+        // --- SUB-PANEL MAIN CONTENT VIEWS ---
+        function WelcomeScreen({ onSelect }) {
+          const [hovering, setHovering] = useState(null);
+          const [entering, setEntering] = useState(null);
+
+          const handleSelect = (id) => {
+            setEntering(id);
+            setTimeout(() => onSelect(id), 650);
+          };
+
+          return (
+            <div style={{
+              height:"100vh", display:"flex", flexDirection:"column",
+              alignItems:"center", justifyContent:"center",
+              background:"var(--bg-deep)", position:"relative", overflow:"hidden",
+            }}>
+              <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 80% 50% at 50% 0%, rgba(99,102,241,0.05) 0%, transparent 65%)", pointerEvents:"none" }}/>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", marginBottom:52 }}>
+                <div className="font-display text-[12px] font-bold tracking-[0.32em] text-[var(--text-muted)] mb-[18px]">◈ OSHUDEV PLATFORM</div>
+                <h1 className="font-display text-4xl font-extrabold text-white mb-3">Who's studying today?</h1>
+                <p style={{ color:"var(--text-muted)", fontSize:15 }}>Select your profile to enter the dashboard</p>
+              </div>
+
+              <div style={{ display:"flex", gap:22, flexWrap:"wrap", justifyContent:"center" }}>
+                {Object.values(PROFILES).map((p, i) => (
+                  <button key={p.id}
+                    onClick={() => handleSelect(p.id)}
+                    onMouseEnter={() => setHovering(p.id)}
+                    onMouseLeave={() => setHovering(null)}
+                    style={{
+                      background: entering === p.id ? `${p.color}22` : hovering === p.id ? "var(--bg-card)" : "var(--bg-surface)",
+                      border:`1px solid ${hovering===p.id || entering===p.id ? p.color+"44" : "var(--border)"}`,
+                      borderRadius:"var(--radius-xl)", padding:"34px 38px",
+                      cursor:"pointer", transition:"all 0.28s var(--ease-spring)",
+                      transform: hovering===p.id ? "translateY(-7px) scale(1.02)" : entering===p.id ? "scale(0.94)" : "none",
+                      boxShadow: hovering===p.id ? `0 24px 60px ${p.glow}` : "none",
+                      width:238, display:"flex", flexDirection:"column", alignItems:"center", gap:20,
+                    }}>
+                    <div style={{
+                      width:80, height:80, borderRadius:"50%",
+                      background:`linear-gradient(135deg, ${p.color}, ${p.light})`,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      fontFamily:"var(--font-display)", fontSize:28, fontWeight:800, color:"white",
+                    }}>
+                      {p.avatar}
+                    </div>
+                    <div style={{ textAlign:"center" }}>
+                      <div className="font-display text-xl font-bold text-white mb-1">{p.fullName}</div>
+                      <div style={{ fontSize:12, color:p.color, fontWeight:500 }}>{p.title}</div>
+                    </div>
+                    <div style={{
+                      width:"100%", padding:"10px 0", borderRadius:"var(--radius-md)",
+                      background: hovering===p.id ? p.color : "var(--bg-elevated)",
+                      color: hovering===p.id ? "white" : "var(--text-muted)",
+                      fontSize:13, fontWeight:600, textAlign:"center"
+                    }}>
+                      {entering===p.id ? "Entering..." : "Enter →"}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -312,309 +531,452 @@
           );
         }
 
-        function Sidebar({ user, activeView, onNav, onSwitchUser }) {
+        function Sidebar({ user, activeView, onNav, onSwitchUser, timerRunning }) {
           return (
-            <div className="w-[218px] shrink-0 h-screen border-r border-[var(--border)] bg-[var(--bg-base)] flex flex-col p-3 fixed left-0 top-0">
-              <div className="font-display font-extrabold text-sm text-white mb-6 p-2 border-b border-[var(--border)]">OSHUDEV CORE</div>
-              <nav className="flex-1 flex flex-col gap-1">
+            <div className="sidebar animate-fade-in" style={{
+              width:218, flexShrink:0, height:"100vh",
+              borderRight:"1px solid var(--border)", background:"var(--bg-base)",
+              display:"flex", flexDirection:"column", padding:"14px 10px",
+              position:"fixed", left:0, top:0, bottom:0, zIndex:50,
+            }}>
+              <div style={{ display:"flex", alignItems:"center", gap:9, paddingBottom:16, borderBottom:"1px solid var(--border)", marginBottom:10 }}>
+                <div style={{ width:27, height:27, background:`linear-gradient(135deg, ${user.color}, ${user.light})`, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:"white" }}>O</div>
+                <span className="font-display font-extrabold text-[15.5px]">OSHUDEV</span>
+              </div>
+              <nav style={{ flex:1, display:"flex", flexDirection:"column", gap:2 }}>
                 {NAV_ITEMS.map(item => (
-                  <div key={item.id} className={`nav-item ${activeView===item.id?'active':''}`} onClick={() => onNav(item.id)} style={activeView===item.id?{color:user.color}:{}}>
-                    <span>{item.icon}</span><span>{item.label}</span>
+                  <div key={item.id} className={`nav-item${activeView===item.id?" active":""}`} onClick={() => onNav(item.id)} style={activeView===item.id ? { color:user.color } : {}}>
+                    <span style={{ fontSize:14, width:16, textAlign:"center" }}>{item.icon}</span>
+                    <span>{item.label}</span>
                   </div>
                 ))}
               </nav>
-              <div className="p-2 rounded bg-[var(--bg-elevated)] border border-[var(--border)] cursor-pointer flex items-center gap-2" onClick={onSwitchUser}>
-                <Avatar user={user} size={28} />
-                <span className="text-xs font-bold text-white">{user.name}</span>
+              <div style={{ borderTop:"1px solid var(--border)", paddingTop:12, display:"flex", flexDirection:"column", gap:10 }}>
+                <XPBar user={user} />
+                <div onClick={onSwitchUser} className="flex items-center gap-[9px] p-2 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-[var(--radius-md)] cursor-pointer">
+                  <Avatar user={user} size={29} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12.5px] font-bold text-white font-display">{user.name}</div>
+                    <div className="text-[10.5px] text-[var(--text-muted)]">🔥 {user.streak}d streak</div>
+                  </div>
+                </div>
               </div>
             </div>
           );
         }
 
-        function Dashboard({ user, partner, onStartTimer, tasks }) {
+        function Dashboard({ user, partner, onStartTimer, tasks, goals }) {
+          const completedTasks = tasks.filter(t => t.done).length;
+          const completedGoals = goals.filter(g => (g.done/g.target)>=1).length;
+          const heatmapData = useState(() => generateHeatmap())[0];
+
           return (
             <div className="flex flex-col gap-5 fade-up">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-start flex-wrap gap-4">
                 <div>
-                  <div className="text-xs text-[var(--text-muted)] mb-1">{todayStr()}</div>
-                  <h1 className="font-display text-2xl font-extrabold text-white">Salutations, {user.name}</h1>
+                  <div className="text-[12.5px] text-[var(--text-muted)] mb-1">{todayStr()} · Week {getWeek()}</div>
+                  <h1 className="font-display text-3xl font-extrabold text-white">Good day, {user.name} 👋</h1>
                 </div>
-                <button className="btn btn-primary" style={{background: user.color}} onClick={onStartTimer}>◎ Initialize Session</button>
+                <button className="btn btn-primary" onClick={onStartTimer} style={{background: user.color, boxShadow: `0 0 20px ${user.glow}`}}>◎ Focus Session</button>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { label:"Time Pool Today", value:fmtHours(user.todayMinutes), color:user.color },
-                  { label:"Vector Streak", value:`${user.streak}d`, color:"var(--accent-amber)" },
-                  { label:"Efficiency Coefficient", value:`${user.focusScore}%`, color:"var(--accent-green)" },
-                  { label:"Pending Directives", value:tasks.filter(t=>!t.done).length, color:"var(--accent-teal)" }
-                ].map(s => (
+                  { label:"Today", value:fmtHours(user.todayMinutes), sub:"study time", color:user.color },
+                  { label:"Streak", value:`${user.streak}d`, sub:"consecutive days", color:"var(--accent-amber)" },
+                  { label:"Focus Score", value:`${user.focusScore}%`, sub:"this week", color:"var(--accent-green)" },
+                  { label:"Tasks", value:`${completedTasks}/${tasks.length}`, sub:"completed", color:"var(--accent-teal)" },
+                ].map((s) => (
                   <div key={s.label} className="stat-card">
-                    <div className="text-[10px] text-[var(--text-muted)] font-bold tracking-wider mb-1 uppercase">{s.label}</div>
-                    <div className="font-display text-xl font-bold" style={{color: s.color}}>{s.value}</div>
+                    <div className="text-[10.5px] font-bold text-[var(--text-muted)] tracking-wider uppercase mb-2">{s.label}</div>
+                    <div className="font-display text-2xl font-extrabold mb-1" style={{color: s.color}}>{s.value}</div>
+                    <div className="text-xs text-[var(--text-muted)]">{s.sub}</div>
                   </div>
                 ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2 flex flex-col gap-4">
+                  <div className="glass-card p-[22px]">
+                    <div className="font-display text-[15px] font-bold mb-[14px]">Today's Goals Alignment</div>
+                    <div className="flex flex-col gap-[14px]">
+                      {goals.map(g => {
+                        const pct = Math.min(100,(g.done/g.target)*100);
+                        return (
+                          <div key={g.id}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span>{g.title}</span>
+                              <span className="font-mono">{g.done}/{g.target} {g.unit}</span>
+                            </div>
+                            <div className="progress-track"><div className="progress-fill" style={{ width:`${pct}%`, background:g.color }}/></div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="glass-card p-[22px]">
+                    <div className="font-display text-[15px] font-bold mb-4">Architecture Matrix Hub</div>
+                    <Heatmap data={heatmapData} color={user.color} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <div className="glass-card p-[18px]">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Study Co-op Sync</div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <Avatar user={partner} size={40} showRing />
+                      <div>
+                        <div className="text-[13.5px] font-semibold">{partner.fullName}</div>
+                        <div className="text-[11px] text-[var(--accent-green)]">● Active Node Connection</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="glass-card p-[18px]">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Metrics Snapshot</div>
+                    <div className="flex items-end gap-1 h-11 mt-2">
+                      {user.weeklyHours.map((h,i) => (
+                        <div key={i} className="flex-1 bg-[rgba(255,255,255,0.05)] rounded-t" style={{height: `${(h/7)*100}%`, background: i===6?user.color:'rgba(255,255,255,0.1)'}}/>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           );
         }
 
-        function TimerView({ user, running, setRunning, remaining, setRemaining, totalDuration, setTotalDuration, sessionType, setSessionType, ambientSound, setAmbientSound, onTimerStateChange }) {
-          const progress = totalDuration > 0 ? 1 - remaining / totalDuration : 0;
-          
-          const applyPreset = (dur, label) => {
-            setRemaining(dur);
-            setTotalDuration(dur);
-            setSessionType(label);
-            setRunning(true);
-            if (onTimerStateChange) onTimerStateChange(dur, label, true);
+        function TimerView({ user, running, setRunning, remaining, setRemaining, totalDuration, setTotalDuration, sessionType, setSessionType, ambientSound, setAmbientSound }) {
+          const intervalRef = useRef(null);
+          const [completed, setCompleted] = useState(false);
+
+          const PRESETS = [
+            { label:"Pomodoro", duration:25*60 },
+            { label:"Deep Work", duration:50*60 },
+            { label:"Short Break", duration:5*60 },
+          ];
+
+          const startTimer = (dur, label) => {
+            setRemaining(dur); setTotalDuration(dur); setSessionType(label); setRunning(true); setCompleted(false);
           };
 
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 fade-up">
-              <div className="md:col-span-2 glass-card p-8 flex flex-col items-center gap-6">
-                <TimerRing progress={progress} color={user.color} size={200}>
-                  <div className="font-mono text-3xl text-white font-bold">{fmtTime(remaining)}</div>
-                  <div className="text-[10px] text-[var(--text-muted)] mt-1 uppercase tracking-wider">{sessionType}</div>
-                </TimerRing>
-                <div className="flex gap-2">
-                  <button className="btn btn-ghost" onClick={() => { setRunning(!running); if(onTimerStateChange) onTimerStateChange(remaining, sessionType, !running); }}>{running?'Pause Engine':'Fire Engine'}</button>
-                </div>
-              </div>
-              <div className="glass-card p-4 flex flex-col gap-3">
-                <div className="text-xs font-bold text-[var(--text-muted)]">Matrix Profiles</div>
-                <button className="w-full text-left p-2 rounded bg-[var(--bg-elevated)] border border-[var(--border)] text-xs flex justify-between" onClick={() => applyPreset(25*60, "Pomodoro")}><span>Pomodoro Mode</span><span>25:00</span></button>
-                <button className="w-full text-left p-2 rounded bg-[var(--bg-elevated)] border border-[var(--border)] text-xs flex justify-between" onClick={() => applyPreset(50*60, "Deep Work")}><span>Deep System Matrix</span><span>50:00</span></button>
-              </div>
-            </div>
-          );
-        }
-
-        function TasksView({ user, tasks, onAddTask, onDeleteTask, onToggleTask }) {
-          const [input, setInput] = useState("");
-          return (
-            <div className="glass-card p-5 flex flex-col gap-3 max-w-xl mx-auto fade-up">
-              <h2 className="font-display font-bold text-white">Active Core Operational Directives</h2>
-              <div className="flex gap-2">
-                <input className="input" value={input} onChange={e=>setInput(e.target.value)} placeholder="Inject task block sequence..." />
-                <button className="btn btn-primary" style={{background: user.color}} onClick={()=>{if(input.trim()){onAddTask(input.trim()); setInput("");}}}>Inject</button>
-              </div>
-              <div className="flex flex-col gap-2 mt-2">
-                {tasks.map(t => (
-                  <div key={t.id} className="flex items-center gap-3 p-3 rounded bg-[var(--bg-elevated)] border border-[var(--border)] text-xs">
-                    <input type="checkbox" checked={t.done} onChange={() => onToggleTask(t.id, t.done)} />
-                    <span className="flex-1 text-white" style={{textDecoration: t.done?'line-through':''}}>{t.text}</span>
-                    <button className="text-[var(--accent-red)] font-bold" onClick={() => onDeleteTask(t.id)}>Purge</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        }
-
-        function NotesView({ user, notes, onAddNote, onUpdateNote }) {
-          const [activeId, setActiveId] = useState(notes[0]?.id || null);
-          const activeNote = notes.find(n => n.id === activeId);
-
-          return (
-            <div className="grid grid-cols-3 gap-4 h-[65vh] fade-up">
-              <div className="glass-card p-2 flex flex-col gap-2 overflow-y-auto">
-                <button className="btn text-xs bg-[var(--bg-elevated)] text-white w-full py-2 border border-[var(--border)]" onClick={() => onAddNote().then(id => { if(id) setActiveId(id); })}>+ New Node</button>
-                {notes.map(n => (
-                  <div key={n.id} className="p-2 rounded cursor-pointer border text-left" style={{background: activeId===n.id?user.soft:'transparent', borderColor: activeId===n.id?user.color:'var(--border)'}} onClick={() => setActiveId(n.id)}>
-                    <div className="text-xs font-bold text-white truncate">{n.title || 'Untitled Node'}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="col-span-2 glass-card p-4 flex flex-col gap-3">
-                {activeNote ? (
-                  <React.Fragment>
-                    <input className="bg-transparent font-display font-bold text-white text-base border-b border-[var(--border)] pb-2 outline-none" value={activeNote.title} onChange={e => onUpdateNote(activeNote.id, e.target.value, activeNote.content)} />
-                    <textarea className="bg-transparent text-xs text-[var(--text-secondary)] flex-1 resize-none outline-none leading-relaxed" value={activeNote.content} onChange={e => onUpdateNote(activeNote.id, activeNote.title, e.target.value)} placeholder="Stream note data string block..." />
-                  </React.Fragment>
-                ) : <div className="m-auto text-xs text-[var(--text-muted)]">Select node from index registry.</div>}
-              </div>
-            </div>
-          );
-        }
-
-        function CoopView({ user, partner, partnerTimer }) {
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 fade-up">
-              <div className="glass-card p-5 flex flex-col gap-4">
-                <h2 className="font-display text-base font-bold text-white">Live Node Multi-Channel Sync</h2>
-                <div className="p-3 rounded bg-[var(--bg-elevated)] border border-[var(--border)] flex flex-col gap-1">
-                  <div className="text-xs font-bold text-white">{user.fullName} (Self)</div>
-                  <div className="text-[10px] text-[var(--text-muted)]">Channel Allocation Operational</div>
-                </div>
-                <div className="p-3 rounded bg-[var(--bg-elevated)] border border-[var(--border)] flex flex-col gap-1">
-                  <div className="text-xs font-bold text-white">{partner.fullName} (Peer Partner)</div>
-                  <div className="text-[11px]" style={{color: partnerTimer?.running?'var(--accent-green)':'var(--text-muted)'}}>
-                    {partnerTimer?.running ? `⚡ Active Matrix: ${partnerTimer.sessionType || 'Focus'} (${fmtTime(partnerTimer.remaining || 0)})` : '■ Node Inactive'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        // --- PIPELINE BRIDGE APP ENGINE ---
-        function MainApplicationBridge() {
-          const [profileId, setProfileId] = useState(null);
-          const [activeView, setActiveView] = useState("dashboard");
-
-          // Core Localized Engine State
-          const [timerRunning, setTimerRunning] = useState(false);
-          const [remaining, setRemaining] = useState(25 * 60);
-          const [totalDuration, setTotalDuration] = useState(25 * 60);
-          const [sessionType, setSessionType] = useState("Pomodoro");
-          const [ambientSound, setAmbientSound] = useState("none");
-
-          // Document Collection Containers
-          const [tasks, setTasks] = useState([]);
-          const [notes, setNotes] = useState([]);
-          const [partnerTimer, setPartnerTimer] = useState(null);
-
-          // Listen for Firebase availability mapping triggers
-          const [fbReady, setFbReady] = useState(false);
           useEffect(() => {
-            const handleReady = () => setFbReady(true);
-            window.addEventListener('firebase-ready', handleReady);
-            if (db) setFbReady(true);
-            return () => window.removeEventListener('firebase-ready', handleReady);
-          }, []);
-
-          // Sync local countdown clock engine independently
-          useEffect(() => {
-            let interval = null;
-            if (timerRunning && remaining > 0) {
-              interval = setInterval(() => {
+            if (running && remaining > 0) {
+              intervalRef.current = setInterval(() => {
                 setRemaining(r => {
                   if (r <= 1) {
-                    setTimerRunning(false);
+                    setRunning(false);
+                    setCompleted(true);
                     return 0;
                   }
                   return r - 1;
                 });
               }, 1000);
             } else {
-              clearInterval(interval);
+              clearInterval(intervalRef.current);
             }
-            return () => clearInterval(interval);
-          }, [timerRunning, remaining]);
+            return () => clearInterval(intervalRef.current);
+          }, [running, remaining]);
 
-          // Real-time peer listeners for cross-syncing metrics
+          const progress = totalDuration > 0 ? 1 - remaining / totalDuration : 0;
+
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 fade-up">
+              <div className="lg:col-span-2 glass-card p-9 flex flex-col items-center gap-7 text-center">
+                {completed && <div className="p-3 rounded bg-[var(--dev-soft)] text-[var(--accent-green)] border border-[var(--accent-green)] w-full font-bold">🎉 Session Architecture Node Executed Successfully!</div>}
+                <TimerRing progress={progress} color={user.color} size={220}>
+                  <div className="font-mono text-4xl text-white tracking-widest">{fmtTime(remaining)}</div>
+                  <div className="text-xs text-[var(--text-muted)] mt-2">{sessionType || "Idle Node"}</div>
+                </TimerRing>
+                <div className="flex gap-3">
+                  <button className="btn btn-ghost" onClick={() => setRunning(!running)}>{running ? "⏸ Pause Protocol" : "▶ Initialize Engine"}</button>
+                  <button className="btn btn-danger" onClick={() => { setRunning(false); setRemaining(totalDuration); }}>↺ Reset Cluster</button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="glass-card p-[18px]">
+                  <div className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Pre-Configured Matrices</div>
+                  <div className="flex flex-col gap-2">
+                    {PRESETS.map(p => (
+                      <button key={p.label} className="w-full text-left p-2 rounded bg-[var(--bg-elevated)] border border-[var(--border)] hover:border-[var(--border-bright)] transition text-xs flex justify-between" onClick={() => startTimer(p.duration, p.label)}>
+                        <span>{p.label}</span>
+                        <span style={{color: user.color}}>{p.duration/60}:00</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="glass-card p-[18px]">
+                  <div className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Ambient Waves Generator</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {AMBIENT_SOUNDS.map(s => (
+                      <button key={s.id} className="p-2 rounded text-xs border transition flex items-center gap-2" style={{background: ambientSound===s.id?user.soft:'var(--bg-elevated)', borderColor: ambientSound===s.id?user.color:'var(--border)'}} onClick={() => setAmbientSound(s.id)}>
+                        <span>{s.icon}</span>{s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function TasksView({ user, tasks, setTasks }) {
+          const [newTask, setNewTask] = useState("");
+          const addTask = () => {
+            if(!newTask.trim()) return;
+            setTasks([...tasks, { id: Date.now(), text: newTask.trim(), done: false, priority: "medium" }]);
+            setNewTask("");
+          };
+          return (
+            <div className="glass-card p-6 flex flex-col gap-4 fade-up max-w-2xl mx-auto">
+              <h2 className="font-display text-xl font-bold">Active Operational Tasks</h2>
+              <div className="flex gap-2">
+                <input className="input" value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Compile structural mission objectives..." onKeyDown={e => e.key === 'Enter' && addTask()} />
+                <button className="btn btn-primary" style={{background: user.color}} onClick={addTask}>Inject</button>
+              </div>
+              <div className="flex flex-col gap-2 mt-2">
+                {tasks.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 p-3 rounded bg-[var(--bg-elevated)] border border-[var(--border)]">
+                    <input type="checkbox" checked={t.done} onChange={() => setTasks(tasks.map(tk => tk.id === t.id ? {...tk, done: !tk.done} : tk))} className="w-4 h-4 accent-[var(--dev-primary)]" />
+                    <span className="text-sm flex-1" style={{textDecoration: t.done ? 'line-through' : 'none', color: t.done ? 'var(--text-muted)' : 'var(--text-primary)'}}>{t.text}</span>
+                    <button className="text-[var(--accent-red)] text-xs font-bold px-2" onClick={() => setTasks(tasks.filter(tk => tk.id !== t.id))}>Delete</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        function GoalsView({ user }) {
+          return (
+            <div className="flex flex-col gap-4 fade-up max-w-3xl mx-auto">
+              <h2 className="font-display text-xl font-bold">Objective Vectors Matrix</h2>
+              {user.goals.map(g => (
+                <div key={g.id} className="glass-card p-5">
+                  <div className="flex justify-between text-sm font-semibold mb-2">
+                    <span>{g.title}</span>
+                    <span style={{color: g.color}}>{Math.round((g.done/g.target)*100)}% Matrix Coverage</span>
+                  </div>
+                  <div className="progress-track mb-2"><div className="progress-fill" style={{width: `${(g.done/g.target)*100}%`, background: g.color}}/></div>
+                  <div className="text-xs text-[var(--text-muted)]">Absolute Alignment Metrics: {g.done} / {g.target} {g.unit}</div>
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        function AnalyticsView({ user }) {
+          return (
+            <div className="flex flex-col gap-5 fade-up">
+              <h2 className="font-display text-xl font-bold">Deep Neural Telemetry & Analytics</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="glass-card p-[22px]">
+                  <div className="font-display text-[15px] font-bold mb-4">Operational Efficiency Metrics Matrix</div>
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1"><span>Focus Consistency Network Threshold</span><span>{user.focusScore}%</span></div>
+                      <div className="progress-track"><div className="progress-fill" style={{width: `${user.focusScore}%`, background: user.color}}/></div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1"><span>Total Runtime Computation Accumulation</span><span>{user.totalHours} Hours</span></div>
+                      <div className="progress-track"><div className="progress-fill" style={{width: '75%', background: 'var(--accent-teal)'}}/></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="glass-card p-[22px] flex flex-col gap-2">
+                  <div className="font-display text-[15px] font-bold mb-2">Unlocked Architectural Badges</div>
+                  <div className="flex flex-wrap gap-2">
+                    {user.achievements.map(a => ACHIEVEMENTS_DEF[a] ? (
+                      <div key={a} className="p-2 rounded bg-[var(--bg-elevated)] border border-[var(--border)] text-xs flex items-center gap-2">
+                        <span>{ACHIEVEMENTS_DEF[a].icon}</span>
+                        <div>
+                          <div className="font-bold text-white">{ACHIEVEMENTS_DEF[a].title}</div>
+                        </div>
+                      </div>
+                    ) : null)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function NotesView({ user }) {
+          const [notes, setNotes] = useState(user.notes);
+          const [activeId, setActiveId] = useState(user.notes[0]?.id);
+          const activeNote = notes.find(n => n.id === activeId);
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 fade-up h-[70vh]">
+              <div className="glass-card p-3 flex flex-col gap-2 overflow-y-auto">
+                <button className="btn w-full text-center py-2 bg-[var(--bg-elevated)] text-xs rounded border border-[var(--border)]" onClick={() => {
+                  const n = { id: Date.now(), title: "Raw System Buffer Note", content: "", tag: "Buffer" };
+                  setNotes([n, ...notes]); setActiveId(n.id);
+                }}>+ Manifest Fresh Buffer</button>
+                {notes.map(n => (
+                  <div key={n.id} className="p-3 rounded cursor-pointer transition border" style={{background: activeId===n.id?user.soft:'var(--bg-card)', borderColor: activeId===n.id?user.color:'var(--border)'}} onClick={() => setActiveId(n.id)}>
+                    <div className="text-xs font-bold truncate text-white">{n.title}</div>
+                    <div className="text-[10px] text-[var(--text-muted)] truncate">{n.content || "Empty buffer node stream..."}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="md:col-span-2 glass-card p-5 flex flex-col gap-3">
+                {activeNote ? (
+                  <React.Fragment>
+                    <input className="bg-transparent font-display text-lg font-bold text-white border-b border-[var(--border)] pb-2 outline-none" value={activeNote.title} onChange={e => setNotes(notes.map(n => n.id === activeId ? {...n, title: e.target.value} : n))} />
+                    <textarea className="bg-transparent text-sm flex-1 resize-none outline-none leading-relaxed text-[var(--text-secondary)]" value={activeNote.content} placeholder="Stream conscious raw structural text strings directly here..." onChange={e => setNotes(notes.map(n => n.id === activeId ? {...n, content: e.target.value} : n))} />
+                  </React.Fragment>
+                ) : <div className="m-auto text-xs text-[var(--text-muted)]">No active data segment chosen.</div>}
+              </div>
+            </div>
+          );
+        }
+
+        function CoopView({ user, partner }) {
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 fade-up">
+              <div className="glass-card p-6 flex flex-col gap-4">
+                <h2 className="font-display text-lg font-bold">Real-time Node Telemetry Sync</h2>
+                <div className="flex items-center gap-3">
+                  <Avatar user={user} size={40} />
+                  <div className="flex-1">
+                    <div className="text-xs font-bold">{user.fullName}</div>
+                    <div className="text-[11px] text-[var(--text-muted)]">Daily Matrix Target: {user.todayMinutes}m</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 border-t border-[var(--border)] pt-3">
+                  <Avatar user={partner} size={40} />
+                  <div className="flex-1">
+                    <div className="text-xs font-bold">{partner.fullName}</div>
+                    <div className="text-[11px] text-[var(--text-muted)]">Daily Matrix Target: {partner.todayMinutes}m</div>
+                  </div>
+                </div>
+              </div>
+              <div className="glass-card p-6">
+                <h2 className="font-display text-lg font-bold mb-3">Shared Co-op Infrastructure Mission Challenges</h2>
+                <div className="p-3 rounded bg-[var(--bg-elevated)] border border-[var(--border)] text-xs flex flex-col gap-2">
+                  <div className="flex justify-between font-bold text-white"><span>Global Runtime Sync Phase (10H)</span><span>On-Track</span></div>
+                  <div className="progress-track"><div className="progress-fill" style={{width: '68%', background: 'linear-gradient(90deg, var(--dev-primary), var(--oshu-primary))'}}/></div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function CalendarView({ user }) {
+          return (
+            <div className="glass-card p-6 max-w-4xl mx-auto fade-up">
+              <h2 className="font-display text-xl font-bold mb-4">Temporal System Scheduler Node Matrix</h2>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs text-[var(--text-muted)] mb-2 font-mono">
+                {["SU", "MO", "TU", "WE", "TH", "FR", "SA"].map(d => <div key={d} className="py-1 font-bold">{d}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: 35 }).map((_, i) => {
+                  const dayNum = (i - 2);
+                  const isValid = dayNum > 0 && dayNum <= 31;
+                  const isToday = dayNum === new Date().getDate();
+                  return (
+                    <div key={i} className="aspect-square p-2 rounded flex flex-col justify-between transition border text-left" style={{background: isValid ? 'var(--bg-card)' : 'transparent', borderColor: isToday ? user.color : 'var(--border)'}}>
+                      {isValid && <span className="font-mono text-[10px] font-bold" style={{color: isToday ? 'white' : 'var(--text-muted)'}}>{dayNum}</span>}
+                      {isValid && Math.random() > 0.6 && <div className="w-1.5 h-1.5 rounded-full" style={{background: user.color}} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+
+        // --- CORE APPLICATION ARCHITECTURE BRIDGE COMMAND CONTAINER ---
+        function MainApplicationBridge() {
+          const [currentProfile, setCurrentProfile] = useState(null);
+          const [activeView, setActiveView] = useState("dashboard");
+          const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+          // Dedicated Timer Universal Hooks
+          const [timerRunning, setTimerRunning] = useState(false);
+          const [remaining, setRemaining] = useState(25 * 60);
+          const [totalDuration, setTotalDuration] = useState(25 * 60);
+          const [sessionType, setSessionType] = useState("Pomodoro");
+          const [ambientSound, setAmbientSound] = useState("none");
+
+          // Profile State Containers
+          const [devTasks, setDevTasks] = useState(PROFILES.DEV.tasks);
+          const [oshuTasks, setOshuTasks] = useState(PROFILES.OSHU.tasks);
+
+          // Dynamic Keyboard Command Palette Core Listener Sequence
           useEffect(() => {
-            if (!fbReady || !profileId || !db) return;
-
-            const targetPartnerId = profileId === "DEV" ? "OSHU" : "DEV";
-            
-            // Listen to partner's state updates
-            const partnerDocRef = doc(db, "profiles", targetPartnerId);
-            const unsubPartner = onSnapshot(partnerDocRef, (snap) => {
-              if (snap.exists()) {
-                setPartnerTimer(snap.data().timer || null);
+            const triggerPalette = (e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setCommandPaletteOpen(o => !o);
               }
-            }, err => console.log("Partner listener error:", err));
-
-            // Setup task subscriber loop
-            const taskQuery = query(collection(db, "profiles", profileId, "tasks"));
-            const unsubTasks = onSnapshot(taskQuery, (snap) => {
-              const items = [];
-              snap.forEach(d => items.push({ id: d.id, ...d.data() }));
-              setTasks(items);
-            });
-
-            // Setup note subscriber loop
-            const noteQuery = query(collection(db, "profiles", profileId, "notes"));
-            const unsubNotes = onSnapshot(noteQuery, (snap) => {
-              const items = [];
-              snap.forEach(d => items.push({ id: d.id, ...d.data() }));
-              setNotes(items);
-            });
-
-            return () => {
-              unsubPartner();
-              unsubTasks();
-              unsubNotes();
             };
-          }, [fbReady, profileId]);
+            window.addEventListener('keydown', triggerPalette);
+            return () => window.removeEventListener('keydown', triggerPalette);
+          }, []);
 
-          if (!profileId) {
-            return <WelcomeScreen onSelect={setProfileId} />;
+          if (!currentProfile) {
+            return <WelcomeScreen onSelect={(profileId) => setCurrentProfile(PROFILES[profileId])} />;
           }
 
-          const user = INITIAL_PROFILES[profileId];
-          const partner = profileId === "DEV" ? INITIAL_PROFILES.OSHU : INITIAL_PROFILES.DEV;
+          const partner = currentProfile.id === "DEV" ? PROFILES.OSHU : PROFILES.DEV;
+          const tasks = currentProfile.id === "DEV" ? devTasks : oshuTasks;
+          const setTasks = currentProfile.id === "DEV" ? setDevTasks : setOshuTasks;
+          const goals = currentProfile.goals;
 
-          // Dispatch transactional sync operations to Firestore base
-          const handleTimerStateChange = (rem, type, run) => {
-            if (!db) return;
-            const myDocRef = doc(db, "profiles", profileId);
-            setDoc(myDocRef, {
-              timer: { remaining: rem, sessionType: type, running: run, updated: Date.now() }
-            }, { merge: true }).catch(e => console.error(e));
-          };
-
-          const handleAddTask = (text) => {
-            if (!db) {
-              setTasks([...tasks, { id: String(Date.now()), text, done: false }]);
-              return;
-            }
-            addDoc(collection(db, "profiles", profileId, "tasks"), {
-              text, done: false, created: Date.now()
-            });
-          };
-
-          const handleToggleTask = (id, currentDone) => {
-            if (!db) {
-              setTasks(tasks.map(t=>t.id===id?{...t, done:!currentDone}:t));
-              return;
-            }
-            setDoc(doc(db, "profiles", profileId, "tasks", id), { done: !currentDone }, { merge: true });
-          };
-
-          const handleDeleteTask = (id) => {
-            if (!db) {
-              setTasks(tasks.filter(t=>t.id!==id));
-              return;
-            }
-            deleteDoc(doc(db, "profiles", profileId, "tasks", id));
-          };
-
-          const handleAddNote = async () => {
-            const tempTitle = "Raw Buffer Segment";
-            if (!db) {
-              const newId = String(Date.now());
-              setNotes([{ id: newId, title: tempTitle, content: "" }, ...notes]);
-              return newId;
-            }
-            const res = await addDoc(collection(db, "profiles", profileId, "notes"), {
-              title: tempTitle, content: "", updated: Date.now()
-            });
-            return res.id;
-          };
-
-          const handleUpdateNote = (id, title, content) => {
-            if (!db) {
-              setNotes(notes.map(n=>n.id===id?{...n, title, content}:n));
-              return;
-            }
-            setDoc(doc(db, "profiles", profileId, "notes", id), { title, content, updated: Date.now() }, { merge: true });
+          const executeActionCommand = (actionId) => {
+            if(actionId === "timer_start") { setActiveView("timer"); setTimerRunning(true); }
+            else if(actionId === "timer_pomodo") { setActiveView("timer"); setRemaining(25*60); setTotalDuration(25*60); setSessionType("Pomodoro"); setTimerRunning(true); }
+            else if(actionId === "new_task") setActiveView("tasks");
+            else if(actionId === "new_note") setActiveView("notes");
+            else if(actionId === "nav_dashboard") setActiveView("dashboard");
+            else if(actionId === "nav_timer") setActiveView("timer");
+            else if(actionId === "nav_tasks") setActiveView("tasks");
+            else if(actionId === "nav_stats") setActiveView("stats");
+            else if(actionId === "nav_coop") setActiveView("coop");
+            else if(actionId === "switch_user") setCurrentProfile(null);
           };
 
           return (
-            <div className="min-h-screen bg-[var(--bg-deep)] flex flex-row">
-              <AmbientOrbs user={user} />
-              <Sidebar user={user} activeView={activeView} onNav={setActiveView} onSwitchUser={() => setProfileId(null)} />
-              <main className="flex-1 ml-[218px] p-8 z-10">
-                {activeView === "dashboard" && <Dashboard user={user} partner={partner} onStartTimer={() => setActiveView("timer")} tasks={tasks} />}
-                {activeView === "timer" && <TimerView user={user} running={timerRunning} setRunning={setTimerRunning} remaining={remaining} setRemaining={setRemaining} totalDuration={totalDuration} setTotalDuration={setTotalDuration} sessionType={sessionType} setSessionType={setSessionType} ambientSound={ambientSound} setAmbientSound={setAmbientSound} onTimerStateChange={handleTimerStateChange} />}
-                {activeView === "tasks" && <TasksView user={user} tasks={tasks} onAddTask={handleAddTask} onDeleteTask={handleDeleteTask} onToggleTask={handleToggleTask} />}
-                {activeView === "goals" && <GoalsView user={user} />}
-                {activeView === "stats" && <AnalyticsView user={user} />}
-                {activeView === "notes" && <NotesView user={user} notes={notes} onAddNote={handleAddNote} onUpdateNote={handleUpdateNote} />}
-                {activeView === "coop" && <CoopView user={user} partner={partner} partnerTimer={partnerTimer} />}
+            <div className="min-h-screen bg-[var(--bg-deep)] relative overflow-x-hidden flex flex-row">
+              <AmbientOrbs user={currentProfile} />
+              <Sidebar user={currentProfile} partner={partner} activeView={activeView} onNav={setActiveView} onSwitchUser={() => setCurrentProfile(null)} timerRunning={timerRunning} />
+              
+              <main className="main-content flex-1 ml-0 md:ml-[218px] p-4 md:p-8 z-10 transition-all duration-300">
+                {activeView === "dashboard" && <Dashboard user={currentProfile} partner={partner} onStartTimer={() => setActiveView("timer")} tasks={tasks} goals={goals} />}
+                {activeView === "timer" && <TimerView user={currentProfile} running={timerRunning} setRunning={setTimerRunning} remaining={remaining} setRemaining={setRemaining} totalDuration={totalDuration} setTotalDuration={setTotalDuration} sessionType={sessionType} setSessionType={setSessionType} ambientSound={ambientSound} setAmbientSound={setAmbientSound} />}
+                {activeView === "tasks" && <TasksView user={currentProfile} tasks={tasks} setTasks={setTasks} />}
+                {activeView === "goals" && <GoalsView user={currentProfile} />}
+                {activeView === "stats" && <AnalyticsView user={currentProfile} />}
+                {activeView === "notes" && <NotesView user={currentProfile} />}
+                {activeView === "coop" && <CoopView user={currentProfile} partner={partner} />}
+                {activeView === "calendar" && <CalendarView user={currentProfile} />}
               </main>
+
+              {/* Command Palette System Modal Rendering */}
+              {commandPaletteOpen && (
+                <div className="cmd-overlay" onClick={() => setCommandPaletteOpen(false)}>
+                  <div className="cmd-box" onClick={e => e.stopPropagation()}>
+                    <div className="p-4 border-b border-[var(--border)] flex items-center gap-3">
+                      <span className="text-[var(--text-muted)] text-lg">⌕</span>
+                      <input className="bg-transparent border-none outline-none text-white text-sm flex-1 font-sans" autoFocus placeholder="Execute global pipeline protocol..." onKeyDown={e => {
+                        if(e.key === 'Escape') setCommandPaletteOpen(false);
+                      }} />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto py-2">
+                      {COMMANDS.map(c => (
+                        <div key={c.id} className="flex items-center gap-3 px-4 py-2 hover:bg-[var(--bg-elevated)] cursor-pointer text-xs" onClick={() => { executeActionCommand(c.id); setCommandPaletteOpen(false); }}>
+                          <span style={{color: currentProfile.color}}>{c.icon}</span>
+                          <span className="text-white">{c.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         }
